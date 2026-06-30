@@ -1,9 +1,10 @@
 import json
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.database.base import Base
 from app.database.session import engine
 from app.models.event import Event
@@ -13,14 +14,31 @@ from app.models.rule import Rule
 
 
 def initialize_database() -> None:
-    Base.metadata.create_all(bind=engine)
+    if settings.database_auto_init:
+        Base.metadata.create_all(bind=engine)
+
+    missing_tables = _get_missing_tables()
+    if missing_tables:
+        missing_display = ", ".join(sorted(missing_tables))
+        raise RuntimeError(
+            "Database schema is missing required tables: "
+            f"{missing_display}. Run `alembic upgrade head` or enable DATABASE_AUTO_INIT=true."
+        )
 
     with Session(engine) as session:
-        _seed_matches(session)
-        _seed_rules(session)
-        _seed_events(session)
+        if settings.seed_demo_data:
+            _seed_matches(session)
+            _seed_rules(session)
+            _seed_events(session)
         _seed_default_profile(session)
         session.commit()
+
+
+def _get_missing_tables() -> set[str]:
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    required_tables = {"events", "matches", "profiles", "rules"}
+    return required_tables - existing_tables
 
 
 def _load_json(filename: str) -> list[dict]:

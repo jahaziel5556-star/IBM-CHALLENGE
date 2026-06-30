@@ -44,7 +44,12 @@ export default function App() {
   const [isDemoRunning, setIsDemoRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [health, setHealth] = useState<HealthResponse>({ status: "unknown", service: "matchmind-one-api", ibm_mode: "mock" });
+  const [health, setHealth] = useState<HealthResponse>({
+    status: "unknown",
+    service: "matchmind-one-api",
+    ibm_mode: "mock",
+    database_backend: "sqlite",
+  });
   const [demoScript, setDemoScript] = useState<DemoScriptStep[]>([]);
   const [insightHistory, setInsightHistory] = useState<
     Array<{
@@ -250,7 +255,11 @@ export default function App() {
       <div className="background-glow background-glow-left" />
       <div className="background-glow background-glow-right" />
 
-      <HeaderBar serviceMode={health.ibm_mode} isHealthy={health.status === "ok"} />
+      <HeaderBar
+        serviceMode={health.ibm_mode}
+        databaseBackend={health.database_backend}
+        isHealthy={health.status === "ok"}
+      />
       <main className="page-grid">
         <section className="hero-panel">
           <div className="hero-copy">

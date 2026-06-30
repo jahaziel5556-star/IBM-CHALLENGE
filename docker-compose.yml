@@ -1,6 +1,17 @@
 version: "3.9"
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: matchmind_one
+      POSTGRES_USER: matchmind
+      POSTGRES_PASSWORD: matchmind
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
   backend:
     build:
       context: ./backend
@@ -8,9 +19,14 @@ services:
       MATCHMIND_ENV: development
       BACKEND_HOST: 0.0.0.0
       BACKEND_PORT: 8000
+      DATABASE_URL: postgresql+psycopg://matchmind:matchmind@postgres:5432/matchmind_one
+      DATABASE_AUTO_INIT: "false"
+      SEED_DEMO_DATA: "true"
       IBM_WATSONX_USE_MOCK: "true"
     ports:
       - "8000:8000"
+    depends_on:
+      - postgres
 
   frontend:
     build:
@@ -21,3 +37,6 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+
+volumes:
+  postgres-data:

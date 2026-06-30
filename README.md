@@ -20,6 +20,7 @@ This repository was initialized on June 30, 2026 and now contains the first impl
 - backend API with profile, demo, and explain contracts
 - frontend broadcast simulation, replay spotlight, and judge demo flow
 - deployment and environment scaffolding
+- PostgreSQL and Alembic migration support for production-shaped persistence
 
 ## Getting Started
 
@@ -38,8 +39,11 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
+
+For the default local SQLite flow, `DATABASE_AUTO_INIT=true` keeps first-run setup simple. For PostgreSQL, run migrations explicitly with `alembic upgrade head`.
 
 ### One-Command Local Run
 
@@ -67,3 +71,9 @@ Detailed guidance lives in `docs/12_DEMO.md`.
 ## IBM Integration Direction
 
 The implementation is structured around IBM watsonx.ai and Granite through backend adapters configured by environment variables. The repository includes a mock fallback so the app remains usable before credentials are supplied.
+
+## Database Modes
+
+- Local quick start: SQLite with automatic schema initialization and seeded demo data
+- Production-shaped local stack: PostgreSQL through Docker Compose plus Alembic migrations
+- Docker backend startup now applies `alembic upgrade head` before starting the API

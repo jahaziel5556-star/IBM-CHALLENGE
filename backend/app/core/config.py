@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     backend_port: int = Field(default=8000, alias="BACKEND_PORT")
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     database_url: str = Field(default="sqlite:///./matchmind_one.db", alias="DATABASE_URL")
+    database_auto_init: bool = Field(default=True, alias="DATABASE_AUTO_INIT")
+    database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
+    seed_demo_data: bool = Field(default=True, alias="SEED_DEMO_DATA")
     ibm_watsonx_api_key: str = Field(default="", alias="IBM_WATSONX_API_KEY")
     ibm_watsonx_project_id: str = Field(default="", alias="IBM_WATSONX_PROJECT_ID")
     ibm_watsonx_url: str = Field(default="https://us-south.ml.cloud.ibm.com", alias="IBM_WATSONX_URL")
@@ -20,6 +23,18 @@ class Settings(BaseSettings):
     ibm_watsonx_api_version: str = Field(default="2025-10-25", alias="IBM_WATSONX_API_VERSION")
     ibm_watsonx_timeout_seconds: int = Field(default=30, alias="IBM_WATSONX_TIMEOUT_SECONDS")
     ibm_watsonx_use_mock: bool = Field(default=True, alias="IBM_WATSONX_USE_MOCK")
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.database_url.startswith("sqlite")
+
+    @property
+    def database_backend(self) -> str:
+        if self.database_url.startswith("postgresql"):
+            return "postgresql"
+        if self.is_sqlite:
+            return "sqlite"
+        return "custom"
 
 
 @lru_cache

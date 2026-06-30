@@ -18,6 +18,7 @@ export type HealthResponse = {
   status: string;
   service: string;
   ibm_mode: string;
+  database_backend: string;
 };
 
 export type DemoScriptStep = {

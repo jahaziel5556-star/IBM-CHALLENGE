@@ -28,6 +28,7 @@ def health() -> dict[str, str | bool]:
         "status": "ok",
         "service": "matchmind-one-api",
         "ibm_mode": "mock" if explanation_service.ibm_service.is_mock else "watsonx",
+        "database_backend": match_service.repository.session.bind.dialect.name,
     }
 
 
