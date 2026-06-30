@@ -3,10 +3,11 @@ import type { MatchEvent } from "../types/domain";
 type EventTimelineProps = {
   events: MatchEvent[];
   selectedEventId: string;
+  queuedEventIds: string[];
   onExplain: (eventId: string) => void | Promise<void>;
 };
 
-export function EventTimeline({ events, selectedEventId, onExplain }: EventTimelineProps) {
+export function EventTimeline({ events, selectedEventId, queuedEventIds, onExplain }: EventTimelineProps) {
   return (
     <div className="timeline-list">
       {events.map((event) => (
@@ -19,6 +20,10 @@ export function EventTimeline({ events, selectedEventId, onExplain }: EventTimel
           <div className="timeline-copy">
             <h3>{event.title}</h3>
             <p>{event.summary}</p>
+            <div className="timeline-meta">
+              <span>{event.rule.prompt_template}</span>
+              {queuedEventIds.includes(event.id) ? <span>Queued</span> : <span>Ready</span>}
+            </div>
           </div>
         </button>
       ))}

@@ -1,10 +1,13 @@
-import type { MatchSummary } from "../types/domain";
+import type { MatchEvent, MatchSummary } from "../types/domain";
 
 type MatchStageProps = {
   match?: MatchSummary;
+  activeEvent?: MatchEvent;
+  queueLength: number;
+  isAutoRunning: boolean;
 };
 
-export function MatchStage({ match }: MatchStageProps) {
+export function MatchStage({ match, activeEvent, queueLength, isAutoRunning }: MatchStageProps) {
   return (
     <div className="match-stage">
       <div className="score-bug">
@@ -18,6 +21,8 @@ export function MatchStage({ match }: MatchStageProps) {
         </div>
       </div>
 
+      <div className="production-badge">{isAutoRunning ? "Live sequencing" : "Manual review"}</div>
+
       <div className="pitch">
         <div className="center-circle" />
         <div className="mid-line" />
@@ -25,11 +30,22 @@ export function MatchStage({ match }: MatchStageProps) {
         <div className="penalty-box penalty-box-right" />
         <div className="spot spot-left" />
         <div className="spot spot-right" />
+        {activeEvent ? (
+          <div className="event-pulse">
+            <span>{activeEvent.title}</span>
+            <strong>{activeEvent.team}</strong>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="queue-banner">
+        <span>Overlay Queue</span>
+        <p>{queueLength} event{queueLength === 1 ? "" : "s"} waiting for explanation timing</p>
       </div>
 
       <div className="commentary-strip">
         <span>Live</span>
-        <p>World Championship Final • Atlas Stadium • Minute 78</p>
+        <p>World Championship Final | Atlas Stadium | {activeEvent ? `Minute ${activeEvent.minute}` : "Match Center"}</p>
       </div>
     </div>
   );

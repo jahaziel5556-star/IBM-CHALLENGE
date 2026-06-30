@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 
 import { apiGet, apiPost } from "./api/client";
+import { BroadcastControls } from "./components/BroadcastControls";
 import { EventTimeline } from "./components/EventTimeline";
 import { HeaderBar } from "./components/HeaderBar";
 import { InsightOverlay } from "./components/InsightOverlay";
 import { MatchStage } from "./components/MatchStage";
 import { ProfileSwitcher } from "./components/ProfileSwitcher";
+import { ReplaySpotlight } from "./components/ReplaySpotlight";
 import { SettingsPanel } from "./components/SettingsPanel";
 import type { ExplainResponse, MatchEvent, MatchSummary, ProfileId, ProfileSettings } from "./types/domain";
 
@@ -24,6 +26,8 @@ export default function App() {
     high_contrast: false,
     reduced_motion: false,
   });
+  const [queuedEventIds, setQueuedEventIds] = useState<string[]>([]);
+  const [isAutoRunning, setIsAutoRunning] = useState(false);
 
   useEffect(() => {
     void apiGet<MatchSummary[]>("/api/matches").then((loadedMatches) => {
@@ -48,9 +52,40 @@ export default function App() {
     return () => window.clearTimeout(timeout);
   }, [activeInsight]);
 
+  useEffect(() => {
+    if (!isAutoRunning || events.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+    const delay = profileSettings.reduced_motion ? 2600 : 1800;
+
+    async function runSequence() {
+      for (const event of events) {
+        if (cancelled) {
+          return;
+        }
+        setQueuedEventIds((current) => [...current, event.id]);
+        await handleExplain(event.id);
+        if (cancelled) {
+          return;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, delay));
+      }
+      setIsAutoRunning(false);
+    }
+
+    void runSequence();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAutoRunning, events, profileSettings.reduced_motion]);
+
   async function handleExplain(eventId: string) {
     setSelectedEventId(eventId);
     const insight = await apiPost<ExplainResponse>("/api/explain", { profile, event_id: eventId });
+    setQueuedEventIds((current) => current.filter((queuedId) => queuedId !== eventId));
     setActiveInsight(insight);
   }
 
@@ -69,6 +104,18 @@ export default function App() {
     setProfileSettings(nextSettings);
     await apiPost("/api/profile", nextSettings);
   }
+
+  function handleStartAutoRun() {
+    setQueuedEventIds([]);
+    setIsAutoRunning(true);
+  }
+
+  function handleStopAutoRun() {
+    setIsAutoRunning(false);
+    setQueuedEventIds([]);
+  }
+
+  const selectedEvent = events.find((event) => event.id === selectedEventId);
 
   return (
     <div
@@ -98,6 +145,12 @@ export default function App() {
           <div className="controls-panel">
             <ProfileSwitcher profiles={profiles} activeProfile={profile} onChange={handleProfileChange} />
             <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
+            <BroadcastControls
+              isAutoRunning={isAutoRunning}
+              queueLength={queuedEventIds.length}
+              onStart={handleStartAutoRun}
+              onStop={handleStopAutoRun}
+            />
             <button className="primary-button" onClick={() => void handleExplain(selectedEventId)}>
               Generate Insight
             </button>
@@ -105,7 +158,12 @@ export default function App() {
         </section>
 
         <section className="broadcast-panel">
-          <MatchStage match={matches[0]} />
+          <MatchStage
+            match={matches[0]}
+            activeEvent={selectedEvent}
+            queueLength={queuedEventIds.length}
+            isAutoRunning={isAutoRunning}
+          />
           <InsightOverlay insight={activeInsight} />
         </section>
 
@@ -115,7 +173,13 @@ export default function App() {
             Each event follows the official rulebook in the event engine spec, including timing, silence, confidence,
             and prompt-template mapping.
           </p>
-          <EventTimeline events={events} selectedEventId={selectedEventId} onExplain={handleExplain} />
+          <ReplaySpotlight event={selectedEvent} />
+          <EventTimeline
+            events={events}
+            selectedEventId={selectedEventId}
+            queuedEventIds={queuedEventIds}
+            onExplain={handleExplain}
+          />
         </section>
       </main>
     </div>

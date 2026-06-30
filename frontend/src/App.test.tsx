@@ -53,7 +53,14 @@ vi.stubGlobal(
               opponent: "Crimson United",
               match_id: "match-world-final-001",
               type: "high_press_detected",
-              rule: { event_type: "high_press_detected", prompt_template: "tactical_shift", overlay_seconds: 6 },
+              rule: {
+                event_type: "high_press_detected",
+                prompt_template: "tactical_shift",
+                overlay_seconds: 6,
+                retrieval_sources: ["tactical_knowledge", "match_context"],
+                trigger_summary: "Explain coordinated pressing traps that visibly change buildup quality.",
+                silence_summary: "Stay silent for isolated pressure moments.",
+              },
             },
             {
               id: "evt-offside-24",
@@ -64,7 +71,14 @@ vi.stubGlobal(
               opponent: "Blue City",
               match_id: "match-world-final-001",
               type: "offside",
-              rule: { event_type: "offside", prompt_template: "law_interpretation", overlay_seconds: 7 },
+              rule: {
+                event_type: "offside",
+                prompt_template: "law_interpretation",
+                overlay_seconds: 7,
+                retrieval_sources: ["fifa_laws", "match_context"],
+                trigger_summary: "Explain close or confusing offsides.",
+                silence_summary: "Stay silent for obvious routine offsides away from danger.",
+              },
             },
             {
               id: "evt-penalty-62",
@@ -75,7 +89,14 @@ vi.stubGlobal(
               opponent: "Crimson United",
               match_id: "match-world-final-001",
               type: "penalty",
-              rule: { event_type: "penalty", prompt_template: "officiating_decision", overlay_seconds: 7 },
+              rule: {
+                event_type: "penalty",
+                prompt_template: "officiating_decision",
+                overlay_seconds: 7,
+                retrieval_sources: ["fifa_laws", "referee_guidance", "match_context"],
+                trigger_summary: "Explain after the decision or replay confirms contact.",
+                silence_summary: "Stay silent when contact is too uncertain to ground confidently.",
+              },
             },
           ]),
         ),
@@ -92,7 +113,14 @@ vi.stubGlobal(
         opponent: "Crimson United",
         match_id: "match-world-final-001",
         type: "high_press_detected",
-        rule: { event_type: "high_press_detected", prompt_template: "tactical_shift", overlay_seconds: 6 },
+        rule: {
+          event_type: "high_press_detected",
+          prompt_template: "tactical_shift",
+          overlay_seconds: 6,
+          retrieval_sources: ["tactical_knowledge", "match_context"],
+          trigger_summary: "Explain coordinated pressing traps that visibly change buildup quality.",
+          silence_summary: "Stay silent for isolated pressure moments.",
+        },
       },
       "/api/events/evt-offside-24": {
         id: "evt-offside-24",
@@ -103,7 +131,14 @@ vi.stubGlobal(
         opponent: "Blue City",
         match_id: "match-world-final-001",
         type: "offside",
-        rule: { event_type: "offside", prompt_template: "law_interpretation", overlay_seconds: 7 },
+        rule: {
+          event_type: "offside",
+          prompt_template: "law_interpretation",
+          overlay_seconds: 7,
+          retrieval_sources: ["fifa_laws", "match_context"],
+          trigger_summary: "Explain close or confusing offsides.",
+          silence_summary: "Stay silent for obvious routine offsides away from danger.",
+        },
       },
       "/api/events/evt-penalty-62": {
         id: "evt-penalty-62",
@@ -114,7 +149,14 @@ vi.stubGlobal(
         opponent: "Crimson United",
         match_id: "match-world-final-001",
         type: "penalty",
-        rule: { event_type: "penalty", prompt_template: "officiating_decision", overlay_seconds: 7 },
+        rule: {
+          event_type: "penalty",
+          prompt_template: "officiating_decision",
+          overlay_seconds: 7,
+          retrieval_sources: ["fifa_laws", "referee_guidance", "match_context"],
+          trigger_summary: "Explain after the decision or replay confirms contact.",
+          silence_summary: "Stay silent when contact is too uncertain to ground confidently.",
+        },
       },
       "/api/events/evt-momentum-70": {
         id: "evt-momentum-70",
@@ -125,7 +167,14 @@ vi.stubGlobal(
         opponent: "Blue City",
         match_id: "match-world-final-001",
         type: "momentum_shift",
-        rule: { event_type: "momentum_shift", prompt_template: "momentum_analysis", overlay_seconds: 6 },
+        rule: {
+          event_type: "momentum_shift",
+          prompt_template: "momentum_analysis",
+          overlay_seconds: 6,
+          retrieval_sources: ["match_context", "tactical_knowledge"],
+          trigger_summary: "Explain sustained swings in pressure, field tilt, or duel control.",
+          silence_summary: "Stay silent for brief emotional swings with no tactical follow-through.",
+        },
       },
       "/api/events/evt-sub-78": {
         id: "evt-sub-78",
@@ -136,7 +185,14 @@ vi.stubGlobal(
         opponent: "Blue City",
         match_id: "match-world-final-001",
         type: "substitution",
-        rule: { event_type: "substitution", prompt_template: "substitution_impact", overlay_seconds: 6 },
+        rule: {
+          event_type: "substitution",
+          prompt_template: "substitution_impact",
+          overlay_seconds: 6,
+          retrieval_sources: ["match_context", "tactical_knowledge", "profile_context"],
+          trigger_summary: "Explain substitutions that change shape, pressure, or attacking intent.",
+          silence_summary: "Stay silent for routine time-management substitutions.",
+        },
       },
     };
 
@@ -178,5 +234,6 @@ describe("App", () => {
     render(<App />);
     expect(await screen.findByText(/Explain the match/i)).toBeInTheDocument();
     expect(screen.getByText(/Live Event Engine/i)).toBeInTheDocument();
+    expect(screen.getByText(/Broadcast Simulation/i)).toBeInTheDocument();
   });
 });
