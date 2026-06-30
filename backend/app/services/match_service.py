@@ -13,6 +13,9 @@ class MatchService:
         with rules_path.open("r", encoding="utf-8") as file:
             rule_items = json.load(file)
         self.rule_details = {item["event_type"]: item for item in rule_items}
+        demo_path = Path(__file__).resolve().parents[1] / "data" / "demo_script.json"
+        with demo_path.open("r", encoding="utf-8") as file:
+            self.demo_script = json.load(file)
 
     def list_matches(self) -> list[dict]:
         return [self._serialize_match(match) for match in self.repository.list_matches()]
@@ -30,6 +33,9 @@ class MatchService:
         if not event:
             return None
         return self._serialize_event(event)
+
+    def get_demo_script(self) -> list[dict]:
+        return self.demo_script
 
     def _serialize_match(self, match: object) -> dict:
         return {

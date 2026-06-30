@@ -22,6 +22,10 @@ Returns the ordered event timeline for a specific match.
 
 Returns one event and its linked event-engine rule metadata.
 
+### `GET /api/demo-script`
+
+Returns the curated judge/demo sequence used by demo mode.
+
 ### `POST /api/explain`
 
 Request:

@@ -52,6 +52,27 @@ vi.stubGlobal(
       );
     }
 
+    if (url.endsWith("/api/demo-script")) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify([
+            {
+              step: 1,
+              event_id: "evt-offside-24",
+              label: "Explain a confusing officiating moment",
+              reason: "Shows law-based explanation for casual viewers immediately.",
+            },
+            {
+              step: 2,
+              event_id: "evt-penalty-62",
+              label: "Compare profile-aware explanations",
+              reason: "Best event for switching between viewer modes.",
+            },
+          ]),
+        ),
+      );
+    }
+
     if (url.endsWith("/api/matches/match-world-final-001/events")) {
       return Promise.resolve(
         new Response(

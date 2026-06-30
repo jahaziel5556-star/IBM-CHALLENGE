@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
+from app.schemas.demo import DemoScriptStep
 from app.schemas.profile import ProfileRequest, ProfileResponse, SettingsResponse
 from app.schemas.explain import ExplainRequest, ExplainResponse
 from app.services.explanation_service import ExplanationService
@@ -71,6 +72,15 @@ def get_event(event_id: str) -> dict:
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
         return event
+    finally:
+        session.close()
+
+
+@router.get("/api/demo-script", response_model=list[DemoScriptStep])
+def get_demo_script() -> list[DemoScriptStep]:
+    session, match_service, _, _ = _build_services()
+    try:
+        return match_service.get_demo_script()
     finally:
         session.close()
 

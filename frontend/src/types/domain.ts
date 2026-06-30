@@ -20,6 +20,13 @@ export type HealthResponse = {
   ibm_mode: string;
 };
 
+export type DemoScriptStep = {
+  step: number;
+  event_id: string;
+  label: string;
+  reason: string;
+};
+
 export type MatchEvent = {
   id: string;
   match_id: string;

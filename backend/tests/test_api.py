@@ -23,6 +23,13 @@ def test_get_event() -> None:
     assert response.json()["rule"]["prompt_template"] == "officiating_decision"
 
 
+def test_get_demo_script() -> None:
+    response = client.get("/api/demo-script")
+    assert response.status_code == 200
+    assert len(response.json()) >= 3
+    assert response.json()[0]["event_id"] == "evt-offside-24"
+
+
 def test_list_match_events() -> None:
     response = client.get("/api/matches/match-world-final-001/events")
     assert response.status_code == 200

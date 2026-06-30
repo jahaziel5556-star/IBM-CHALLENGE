@@ -11,10 +11,17 @@ import { ProfileSwitcher } from "./components/ProfileSwitcher";
 import { ReplaySpotlight } from "./components/ReplaySpotlight";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { StateNotice } from "./components/StateNotice";
-import type { ExplainResponse, HealthResponse, MatchEvent, MatchSummary, ProfileId, ProfileSettings } from "./types/domain";
+import type {
+  DemoScriptStep,
+  ExplainResponse,
+  HealthResponse,
+  MatchEvent,
+  MatchSummary,
+  ProfileId,
+  ProfileSettings,
+} from "./types/domain";
 
 const profiles: ProfileId[] = ["new_fan", "casual_viewer", "analyst", "child", "accessibility"];
-const demoSequence = ["evt-offside-24", "evt-penalty-62", "evt-var-64", "evt-goal-81", "evt-red-86"];
 
 export default function App() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
@@ -37,20 +44,23 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [health, setHealth] = useState<HealthResponse>({ status: "unknown", service: "matchmind-one-api", ibm_mode: "mock" });
+  const [demoScript, setDemoScript] = useState<DemoScriptStep[]>([]);
 
   useEffect(() => {
     async function loadApp() {
       try {
         setIsLoading(true);
-        const [healthResponse, loadedMatches, loadedProfile] = await Promise.all([
+        const [healthResponse, loadedMatches, loadedProfile, loadedDemoScript] = await Promise.all([
           apiGet<HealthResponse>("/health"),
           apiGet<MatchSummary[]>("/api/matches"),
           apiGet<ProfileSettings>("/api/profile"),
+          apiGet<DemoScriptStep[]>("/api/demo-script"),
         ]);
         setHealth(healthResponse);
         setMatches(loadedMatches);
         setProfile(loadedProfile.profile);
         setProfileSettings(loadedProfile);
+        setDemoScript(loadedDemoScript);
 
         const primaryMatch = loadedMatches[0];
         if (primaryMatch) {
@@ -84,7 +94,7 @@ export default function App() {
 
     let cancelled = false;
     const delay = profileSettings.reduced_motion ? 2600 : 1800;
-    const sequenceSource = isDemoRunning ? demoSequence : events.map((event) => event.id);
+    const sequenceSource = isDemoRunning ? demoScript.map((item) => item.event_id) : events.map((event) => event.id);
     const remainingEvents = sequenceSource
       .map((eventId) => events.find((event) => event.id === eventId))
       .filter((event): event is MatchEvent => Boolean(event))
@@ -121,7 +131,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [isAutoRunning, events, isDemoRunning, lastExplainedMinute, processedEventIds, profileSettings.reduced_motion]);
+  }, [isAutoRunning, events, isDemoRunning, lastExplainedMinute, processedEventIds, profileSettings.reduced_motion, demoScript]);
 
   async function handleExplain(eventId: string, options?: { fromAutoRun?: boolean }) {
     setSelectedEventId(eventId);
@@ -235,7 +245,12 @@ export default function App() {
               onStartDemo={handleStartDemo}
               onStop={handleStopAutoRun}
             />
-            <DemoGuide currentMinute={liveMinute} currentScore={liveScore} isAutoRunning={isAutoRunning} />
+            <DemoGuide
+              currentMinute={liveMinute}
+              currentScore={liveScore}
+              isAutoRunning={isAutoRunning}
+              demoScript={demoScript}
+            />
             <button className="primary-button" onClick={() => void handleExplain(selectedEventId)}>
               Generate Insight
             </button>

@@ -1,0 +1,32 @@
+[
+  {
+    "step": 1,
+    "event_id": "evt-offside-24",
+    "label": "Explain a confusing officiating moment",
+    "reason": "Shows law-based explanation for casual viewers immediately."
+  },
+  {
+    "step": 2,
+    "event_id": "evt-penalty-62",
+    "label": "Compare profile-aware explanations",
+    "reason": "Best event for switching between new_fan, analyst, and accessibility modes."
+  },
+  {
+    "step": 3,
+    "event_id": "evt-var-64",
+    "label": "Show trust and transparency",
+    "reason": "Demonstrates replay-aware explanation with official review context."
+  },
+  {
+    "step": 4,
+    "event_id": "evt-goal-81",
+    "label": "Highlight tactical understanding",
+    "reason": "Connects earlier tactical changes to the eventual equalizer."
+  },
+  {
+    "step": 5,
+    "event_id": "evt-red-86",
+    "label": "Finish with a decisive high-priority event",
+    "reason": "Ends the demo on a dramatic, explainable officiating moment."
+  }
+]
