@@ -175,6 +175,67 @@ input {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.readiness-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.12), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(45, 212, 191, 0.22);
+}
+
+.readiness-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.readiness-header h2,
+.readiness-copy {
+  margin: 0;
+}
+
+.readiness-mode {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.readiness-mode span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(3, 12, 21, 0.54);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+}
+
+.readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.readiness-grid div {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.readiness-grid strong {
+  display: block;
+  font-size: 1.6rem;
+  color: var(--accent-strong);
+}
+
+.readiness-grid p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
 .demo-grid {
   display: grid;
   gap: 12px;

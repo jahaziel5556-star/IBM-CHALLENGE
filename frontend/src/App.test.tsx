@@ -33,6 +33,7 @@ vi.stubGlobal(
             status: "ok",
             service: "matchmind-one-api",
             ibm_mode: "mock",
+            database_backend: "sqlite",
           }),
         ),
       );
@@ -69,6 +70,23 @@ vi.stubGlobal(
               reason: "Best event for switching between viewer modes.",
             },
           ]),
+        ),
+      );
+    }
+
+    if (url.endsWith("/api/system/summary")) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            database_backend: "sqlite",
+            ibm_mode: "mock",
+            match_count: 1,
+            event_count: 14,
+            rule_count: 14,
+            demo_step_count: 4,
+            profiles_supported: ["new_fan", "casual_viewer", "analyst", "child", "accessibility"],
+            event_types_supported: ["goal", "offside", "penalty", "var_review"],
+          }),
         ),
       );
     }
@@ -298,5 +316,6 @@ describe("App", () => {
     expect(screen.getByText(/Judge Demo Flow/i)).toBeInTheDocument();
     expect(screen.getByText(/Service Ready/i)).toBeInTheDocument();
     expect(screen.getByText(/Insight History/i)).toBeInTheDocument();
+    expect(screen.getByText(/System status at a glance/i)).toBeInTheDocument();
   });
 });

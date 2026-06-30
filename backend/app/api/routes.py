@@ -5,6 +5,7 @@ from app.database.session import SessionLocal
 from app.schemas.demo import DemoScriptStep
 from app.schemas.profile import ProfileRequest, ProfileResponse, SettingsResponse
 from app.schemas.explain import ExplainRequest, ExplainResponse
+from app.schemas.system import SystemSummary
 from app.services.explanation_service import ExplanationService
 from app.services.match_service import MatchService
 from app.services.profile_service import ProfileService
@@ -82,6 +83,19 @@ def get_demo_script() -> list[DemoScriptStep]:
     session, match_service, _, _ = _build_services()
     try:
         return match_service.get_demo_script()
+    finally:
+        session.close()
+
+
+@router.get("/api/system/summary", response_model=SystemSummary)
+def get_system_summary() -> SystemSummary:
+    session, match_service, _, explanation_service = _build_services()
+    try:
+        return SystemSummary(
+            **match_service.get_system_summary(
+                ibm_mode="mock" if explanation_service.ibm_service.is_mock else "watsonx"
+            )
+        )
     finally:
         session.close()
 

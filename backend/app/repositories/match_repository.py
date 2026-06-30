@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.event import Event
@@ -25,3 +25,12 @@ class MatchRepository:
 
     def get_rule(self, event_type: str) -> Rule | None:
         return self.session.get(Rule, event_type)
+
+    def count_matches(self) -> int:
+        return int(self.session.scalar(select(func.count()).select_from(Match)) or 0)
+
+    def count_events(self) -> int:
+        return int(self.session.scalar(select(func.count()).select_from(Event)) or 0)
+
+    def count_rules(self) -> int:
+        return int(self.session.scalar(select(func.count()).select_from(Rule)) or 0)

@@ -28,6 +28,17 @@ export type DemoScriptStep = {
   reason: string;
 };
 
+export type SystemSummary = {
+  database_backend: string;
+  ibm_mode: string;
+  match_count: number;
+  event_count: number;
+  rule_count: number;
+  demo_step_count: number;
+  profiles_supported: string[];
+  event_types_supported: string[];
+};
+
 export type MatchEvent = {
   id: string;
   match_id: string;

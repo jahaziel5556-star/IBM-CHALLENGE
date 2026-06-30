@@ -31,6 +31,17 @@ def test_get_demo_script() -> None:
     assert response.json()[0]["event_id"] == "evt-offside-24"
 
 
+def test_get_system_summary() -> None:
+    response = client.get("/api/system/summary")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["database_backend"] == "sqlite"
+    assert payload["event_count"] >= 1
+    assert payload["rule_count"] >= 1
+    assert "goal" in payload["event_types_supported"]
+    assert payload["demo_step_count"] >= 3
+
+
 def test_list_match_events() -> None:
     response = client.get("/api/matches/match-world-final-001/events")
     assert response.status_code == 200

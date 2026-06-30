@@ -12,6 +12,7 @@ import { ProfileSwitcher } from "./components/ProfileSwitcher";
 import { ReplaySpotlight } from "./components/ReplaySpotlight";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { StateNotice } from "./components/StateNotice";
+import { SystemReadiness } from "./components/SystemReadiness";
 import type {
   DemoScriptStep,
   ExplainResponse,
@@ -20,6 +21,7 @@ import type {
   MatchSummary,
   ProfileId,
   ProfileSettings,
+  SystemSummary,
 } from "./types/domain";
 
 const profiles: ProfileId[] = ["new_fan", "casual_viewer", "analyst", "child", "accessibility"];
@@ -51,6 +53,7 @@ export default function App() {
     database_backend: "sqlite",
   });
   const [demoScript, setDemoScript] = useState<DemoScriptStep[]>([]);
+  const [systemSummary, setSystemSummary] = useState<SystemSummary | null>(null);
   const [insightHistory, setInsightHistory] = useState<
     Array<{
       eventId: string;
@@ -65,17 +68,19 @@ export default function App() {
     async function loadApp() {
       try {
         setIsLoading(true);
-        const [healthResponse, loadedMatches, loadedProfile, loadedDemoScript] = await Promise.all([
+        const [healthResponse, loadedMatches, loadedProfile, loadedDemoScript, loadedSystemSummary] = await Promise.all([
           apiGet<HealthResponse>("/health"),
           apiGet<MatchSummary[]>("/api/matches"),
           apiGet<ProfileSettings>("/api/profile"),
           apiGet<DemoScriptStep[]>("/api/demo-script"),
+          apiGet<SystemSummary>("/api/system/summary"),
         ]);
         setHealth(healthResponse);
         setMatches(loadedMatches);
         setProfile(loadedProfile.profile);
         setProfileSettings(loadedProfile);
         setDemoScript(loadedDemoScript);
+        setSystemSummary(loadedSystemSummary);
 
         const primaryMatch = loadedMatches[0];
         if (primaryMatch) {
@@ -282,6 +287,7 @@ export default function App() {
               onStartDemo={handleStartDemo}
               onStop={handleStopAutoRun}
             />
+            <SystemReadiness summary={systemSummary} />
             <DemoGuide
               currentMinute={liveMinute}
               currentScore={liveScore}

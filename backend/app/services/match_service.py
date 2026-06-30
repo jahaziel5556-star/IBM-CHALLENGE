@@ -37,6 +37,19 @@ class MatchService:
     def get_demo_script(self) -> list[dict]:
         return self.demo_script
 
+    def get_system_summary(self, *, ibm_mode: str) -> dict:
+        profiles_supported = ["new_fan", "casual_viewer", "analyst", "child", "accessibility"]
+        return {
+            "database_backend": self.repository.session.bind.dialect.name,
+            "ibm_mode": ibm_mode,
+            "match_count": self.repository.count_matches(),
+            "event_count": self.repository.count_events(),
+            "rule_count": self.repository.count_rules(),
+            "demo_step_count": len(self.demo_script),
+            "profiles_supported": profiles_supported,
+            "event_types_supported": sorted(self.rule_details.keys()),
+        }
+
     def _serialize_match(self, match: object) -> dict:
         return {
             "id": match.id,
