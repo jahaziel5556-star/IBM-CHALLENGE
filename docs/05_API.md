@@ -4,7 +4,7 @@
 
 ### `GET /health`
 
-Returns service health and IBM adapter mode.
+Returns service health, IBM adapter mode, and active database backend.
 
 ### `GET /api/matches`
 
@@ -25,6 +25,10 @@ Returns one event and its linked event-engine rule metadata.
 ### `GET /api/demo-script`
 
 Returns the curated judge/demo sequence used by demo mode.
+
+### `GET /api/system/summary`
+
+Returns demo-readiness metadata including seeded match counts, event counts, rule counts, supported profiles, supported event types, IBM mode, and database backend.
 
 ### `POST /api/explain`
 

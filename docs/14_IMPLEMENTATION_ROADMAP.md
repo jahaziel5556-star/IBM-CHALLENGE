@@ -22,7 +22,7 @@ Build backend application foundation.
 
 ## Phase 5
 
-Add persistence and seeded data structures.
+Add persistence, migrations, PostgreSQL support, and seeded data structures.
 
 ## Phase 6
 
@@ -46,7 +46,7 @@ Add personalization and accessibility tuning.
 
 ## Phase 11
 
-Add tests and validation.
+Add tests, migration validation, and demo-readiness verification.
 
 ## Phase 12
 

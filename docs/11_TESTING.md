@@ -7,6 +7,8 @@
 - event lookup test
 - explanation generation test
 - profile variation test
+- demo-readiness summary endpoint test
+- Alembic migration smoke test against a fresh SQLite database
 
 ## Frontend
 
@@ -21,3 +23,4 @@
 - same event changes language by profile
 - overlay duration follows event-engine defaults
 - fallback mock explanations never fabricate laws when unavailable
+- health and summary endpoints expose IBM mode plus database backend for demos
