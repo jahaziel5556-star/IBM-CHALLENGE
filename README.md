@@ -16,9 +16,9 @@ MatchMind One is an AI Broadcast Intelligence Layer for football broadcasts. It 
 This repository was initialized on June 30, 2026 and now contains the first implementation foundation for:
 
 - canonical documentation
-- seeded event engine rules
-- backend API skeleton
-- frontend broadcast shell
+- seeded event engine rules and curated demo script
+- backend API with profile, demo, and explain contracts
+- frontend broadcast simulation, replay spotlight, and judge demo flow
 - deployment and environment scaffolding
 
 ## Getting Started
@@ -40,6 +40,29 @@ python -m venv .venv
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
+
+### One-Command Local Run
+
+Windows PowerShell:
+
+```powershell
+.\scripts\run-matchmind-local.ps1
+```
+
+To stop both local processes:
+
+```powershell
+.\scripts\stop-matchmind-local.ps1
+```
+
+## Demo Flow
+
+- Start `Demo Mode` from the frontend
+- Walk through offside, penalty, VAR, goal, and red-card moments
+- Switch profiles during the penalty or VAR explanation
+- Use the replay window and evidence chips to explain why the AI spoke
+
+Detailed guidance lives in `docs/12_DEMO.md`.
 
 ## IBM Integration Direction
 
