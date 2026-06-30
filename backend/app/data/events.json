@@ -1,0 +1,69 @@
+[
+  {
+    "id": "evt-highpress-12",
+    "match_id": "match-world-final-001",
+    "minute": 12,
+    "type": "high_press_detected",
+    "title": "High Press Detected",
+    "team": "Blue City",
+    "opponent": "Crimson United",
+    "summary": "Blue City are pressing the first pass aggressively and forcing rushed clearances.",
+    "analysis": "Blue City have synchronized their front three to lock the center and jump on the fullback outlet, turning rest defense into immediate territorial pressure.",
+    "child_summary": "Blue City are chasing the ball together so the other team cannot pass calmly.",
+    "confidence": "high"
+  },
+  {
+    "id": "evt-offside-24",
+    "match_id": "match-world-final-001",
+    "minute": 24,
+    "type": "offside",
+    "title": "Goal Disallowed For Offside",
+    "team": "Crimson United",
+    "opponent": "Blue City",
+    "summary": "The attacker moved beyond the second-last defender before the pass was played.",
+    "analysis": "The forward attacked early against a stepping line, so the finish counted only after the assistant's timing check failed.",
+    "child_summary": "The scorer ran a little too early before the pass.",
+    "confidence": "high",
+    "law_reference": "Law 11"
+  },
+  {
+    "id": "evt-penalty-62",
+    "match_id": "match-world-final-001",
+    "minute": 62,
+    "type": "penalty",
+    "title": "Penalty Awarded",
+    "team": "Blue City",
+    "opponent": "Crimson United",
+    "summary": "The defender made contact before winning the ball and stopped the shot path.",
+    "analysis": "The recovery run was late, the tackle line came across the attacker, and the defender clipped the player before clean ball contact was possible.",
+    "child_summary": "The defender hit the player first instead of getting the ball first.",
+    "confidence": "high",
+    "law_reference": "Law 12"
+  },
+  {
+    "id": "evt-momentum-70",
+    "match_id": "match-world-final-001",
+    "minute": 70,
+    "type": "momentum_shift",
+    "title": "Momentum Shift",
+    "team": "Crimson United",
+    "opponent": "Blue City",
+    "summary": "Crimson United have started winning second balls and pinning Blue City deeper.",
+    "analysis": "The substitution refreshed the press, restored counterpressure, and turned midfield duels into sustained field tilt.",
+    "child_summary": "Crimson United are getting stronger and keeping Blue City near their own goal.",
+    "confidence": "medium"
+  },
+  {
+    "id": "evt-sub-78",
+    "match_id": "match-world-final-001",
+    "minute": 78,
+    "type": "substitution",
+    "title": "Tactical Substitution",
+    "team": "Crimson United",
+    "opponent": "Blue City",
+    "summary": "A fresh winger has been added to attack the wide channel behind the fullback.",
+    "analysis": "The change shifts the attack toward direct isolation on the flank, aiming to stretch the back line and create deeper cutback zones.",
+    "child_summary": "The coach brought on a fast player to attack the side spaces.",
+    "confidence": "medium"
+  }
+]

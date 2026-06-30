@@ -1,0 +1,104 @@
+from fastapi import APIRouter, HTTPException
+from sqlalchemy.orm import Session
+
+from app.database.session import SessionLocal
+from app.schemas.profile import ProfileRequest, SettingsResponse
+from app.schemas.explain import ExplainRequest, ExplainResponse
+from app.services.explanation_service import ExplanationService
+from app.services.match_service import MatchService
+from app.services.profile_service import ProfileService
+
+router = APIRouter()
+
+
+def _build_services() -> tuple[Session, MatchService, ProfileService, ExplanationService]:
+    session = SessionLocal()
+    match_service = MatchService(session)
+    profile_service = ProfileService(session)
+    explanation_service = ExplanationService(match_service, profile_service)
+    return session, match_service, profile_service, explanation_service
+
+
+@router.get("/health")
+def health() -> dict[str, str | bool]:
+    session, match_service, profile_service, explanation_service = _build_services()
+    session.close()
+    return {
+        "status": "ok",
+        "service": "matchmind-one-api",
+        "ibm_mode": "mock" if explanation_service.ibm_service.is_mock else "watsonx",
+    }
+
+
+@router.get("/api/matches")
+def list_matches() -> list[dict]:
+    session, match_service, _, _ = _build_services()
+    try:
+        return match_service.list_matches()
+    finally:
+        session.close()
+
+
+@router.get("/api/matches/{match_id}")
+def get_match(match_id: str) -> dict:
+    session, match_service, _, _ = _build_services()
+    try:
+        match = match_service.get_match(match_id)
+        if not match:
+            raise HTTPException(status_code=404, detail="Match not found")
+        return match
+    finally:
+        session.close()
+
+
+@router.get("/api/matches/{match_id}/events")
+def list_match_events(match_id: str) -> list[dict]:
+    session, match_service, _, _ = _build_services()
+    try:
+        match = match_service.get_match(match_id)
+        if not match:
+            raise HTTPException(status_code=404, detail="Match not found")
+        return match_service.list_events_for_match(match_id)
+    finally:
+        session.close()
+
+
+@router.get("/api/events/{event_id}")
+def get_event(event_id: str) -> dict:
+    session, match_service, _, _ = _build_services()
+    try:
+        event = match_service.get_event(event_id)
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        return event
+    finally:
+        session.close()
+
+
+@router.post("/api/explain", response_model=ExplainResponse)
+def explain_event(request: ExplainRequest) -> ExplainResponse:
+    session, match_service, profile_service, explanation_service = _build_services()
+    try:
+        return explanation_service.explain_event(request)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    finally:
+        session.close()
+
+
+@router.post("/api/profile")
+def update_profile(request: ProfileRequest) -> dict:
+    session, _, profile_service, _ = _build_services()
+    try:
+        return profile_service.update_profile(request)
+    finally:
+        session.close()
+
+
+@router.get("/api/settings", response_model=SettingsResponse)
+def get_settings() -> SettingsResponse:
+    session, _, profile_service, _ = _build_services()
+    try:
+        return profile_service.get_settings()
+    finally:
+        session.close()

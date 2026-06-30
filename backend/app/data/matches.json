@@ -1,0 +1,15 @@
+[
+  {
+    "id": "match-world-final-001",
+    "competition": "World Championship Final",
+    "home_team": "Blue City",
+    "away_team": "Crimson United",
+    "venue": "Atlas Stadium",
+    "date": "2026-07-14",
+    "status": "in_progress",
+    "score": {
+      "home": 1,
+      "away": 1
+    }
+  }
+]
