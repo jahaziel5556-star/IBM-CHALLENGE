@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.repositories.profile_repository import ProfileRepository
-from app.schemas.profile import ProfileRequest, SettingsResponse
+from app.schemas.profile import ProfileRequest, ProfileResponse, SettingsResponse
 
 
 class ProfileService:
@@ -22,9 +22,9 @@ class ProfileService:
             "language": profile.language,
         }
 
-    def get_profile(self) -> ProfileRequest:
+    def get_profile(self) -> ProfileResponse:
         profile = self.repository.get_active_profile()
-        return ProfileRequest(
+        return ProfileResponse(
             profile=profile.profile,
             language=profile.language,
             large_text=profile.large_text,

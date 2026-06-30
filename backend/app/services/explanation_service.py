@@ -36,6 +36,10 @@ class ExplanationService:
             ),
             prompt_template=rule["prompt_template"],
             silent_recommended=event.get("silent_recommended", False),
+            why_now=rule.get("trigger_summary", ""),
+            silence_rule=rule.get("silence_summary", ""),
+            retrieval_sources=rule.get("retrieval_sources", []),
+            evidence=model_output["evidence"],
         )
 
     def _build_guidance(self, *, event: dict, profile: str) -> dict:
@@ -70,4 +74,16 @@ class ExplanationService:
         return {
             **guidance_by_profile.get(profile, guidance_by_profile["new_fan"]),
             "default_confidence": event.get("confidence", "medium"),
+            "evidence": self._build_evidence(event),
         }
+
+    def _build_evidence(self, event: dict) -> list[str]:
+        evidence = [
+            f'{event["minute"]}\' minute context',
+            event["summary"],
+        ]
+        if event.get("law_reference"):
+            evidence.append(event["law_reference"])
+        if event["type"] in {"high_press_detected", "momentum_shift", "substitution"}:
+            evidence.append("Tactical pattern detected")
+        return evidence

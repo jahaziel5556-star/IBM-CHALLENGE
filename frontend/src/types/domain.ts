@@ -29,7 +29,18 @@ export type MatchEvent = {
     event_type: string;
     prompt_template: string;
     overlay_seconds: number;
+    retrieval_sources: string[];
+    trigger_summary: string;
+    silence_summary: string;
   };
+};
+
+export type ProfileSettings = {
+  profile: ProfileId;
+  language: string;
+  large_text: boolean;
+  high_contrast: boolean;
+  reduced_motion: boolean;
 };
 
 export type ExplainResponse = {
@@ -40,6 +51,10 @@ export type ExplainResponse = {
   law_reference: string | null;
   prompt_template: string;
   silent_recommended: boolean;
+  why_now: string;
+  silence_rule: string;
+  retrieval_sources: string[];
+  evidence: string[];
   overlay: {
     placement: string;
     duration_seconds: number;

@@ -1,1 +1,0 @@
-{"root":["./src/app.test.tsx","./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/components/eventtimeline.tsx","./src/components/headerbar.tsx","./src/components/insightoverlay.tsx","./src/components/matchstage.tsx","./src/components/profileswitcher.tsx","./src/test/setup.ts","./src/types/domain.ts"],"version":"5.9.3"}

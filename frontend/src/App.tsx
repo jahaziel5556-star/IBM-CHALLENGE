@@ -6,7 +6,8 @@ import { HeaderBar } from "./components/HeaderBar";
 import { InsightOverlay } from "./components/InsightOverlay";
 import { MatchStage } from "./components/MatchStage";
 import { ProfileSwitcher } from "./components/ProfileSwitcher";
-import type { ExplainResponse, MatchEvent, MatchSummary, ProfileId } from "./types/domain";
+import { SettingsPanel } from "./components/SettingsPanel";
+import type { ExplainResponse, MatchEvent, MatchSummary, ProfileId, ProfileSettings } from "./types/domain";
 
 const profiles: ProfileId[] = ["new_fan", "casual_viewer", "analyst", "child", "accessibility"];
 
@@ -16,6 +17,13 @@ export default function App() {
   const [profile, setProfile] = useState<ProfileId>("new_fan");
   const [activeInsight, setActiveInsight] = useState<ExplainResponse | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string>("evt-penalty-62");
+  const [profileSettings, setProfileSettings] = useState<ProfileSettings>({
+    profile: "new_fan",
+    language: "en",
+    large_text: false,
+    high_contrast: false,
+    reduced_motion: false,
+  });
 
   useEffect(() => {
     void apiGet<MatchSummary[]>("/api/matches").then((loadedMatches) => {
@@ -24,6 +32,10 @@ export default function App() {
       if (primaryMatch) {
         void apiGet<MatchEvent[]>(`/api/matches/${primaryMatch.id}/events`).then(setEvents);
       }
+    });
+    void apiGet<ProfileSettings>("/api/profile").then((loadedProfile) => {
+      setProfile(loadedProfile.profile);
+      setProfileSettings(loadedProfile);
     });
   }, []);
 
@@ -44,14 +56,30 @@ export default function App() {
 
   async function handleProfileChange(nextProfile: ProfileId) {
     setProfile(nextProfile);
-    await apiPost("/api/profile", { profile: nextProfile });
+    const nextSettings = { ...profileSettings, profile: nextProfile };
+    setProfileSettings(nextSettings);
+    await apiPost("/api/profile", nextSettings);
     if (selectedEventId) {
       void handleExplain(selectedEventId);
     }
   }
 
+  async function handleToggleSetting(field: "large_text" | "high_contrast" | "reduced_motion", value: boolean) {
+    const nextSettings = { ...profileSettings, profile, [field]: value };
+    setProfileSettings(nextSettings);
+    await apiPost("/api/profile", nextSettings);
+  }
+
   return (
-    <div className="app-shell">
+    <div
+      className={
+        profileSettings.high_contrast
+          ? "app-shell app-shell-high-contrast"
+          : profileSettings.large_text
+            ? "app-shell app-shell-large-text"
+            : "app-shell"
+      }
+    >
       <div className="background-glow background-glow-left" />
       <div className="background-glow background-glow-right" />
 
@@ -69,6 +97,7 @@ export default function App() {
 
           <div className="controls-panel">
             <ProfileSwitcher profiles={profiles} activeProfile={profile} onChange={handleProfileChange} />
+            <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
             <button className="primary-button" onClick={() => void handleExplain(selectedEventId)}>
               Generate Insight
             </button>

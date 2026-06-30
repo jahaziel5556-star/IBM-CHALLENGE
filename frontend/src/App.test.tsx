@@ -26,6 +26,20 @@ vi.stubGlobal(
       );
     }
 
+    if (url.endsWith("/api/profile")) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            profile: "new_fan",
+            language: "en",
+            large_text: false,
+            high_contrast: false,
+            reduced_motion: false,
+          }),
+        ),
+      );
+    }
+
     if (url.endsWith("/api/matches/match-world-final-001/events")) {
       return Promise.resolve(
         new Response(
@@ -129,6 +143,30 @@ vi.stubGlobal(
     const matchedEntry = Object.entries(eventsByPath).find(([path]) => url.endsWith(path));
     if (matchedEntry) {
       return Promise.resolve(new Response(JSON.stringify(matchedEntry[1])));
+    }
+
+    if (url.endsWith("/api/explain")) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            event_id: "evt-penalty-62",
+            headline: "Penalty Awarded",
+            explanation: "Blue City forced a foul inside the box.",
+            confidence: "high",
+            law_reference: "Law 12",
+            prompt_template: "officiating_decision",
+            silent_recommended: false,
+            why_now: "Explain after the decision or replay confirms the contact.",
+            silence_rule: "Stay silent when the contact remains too uncertain.",
+            retrieval_sources: ["fifa_laws", "match_context"],
+            evidence: ["62' minute context", "The defender made contact before winning the ball.", "Law 12"],
+            overlay: {
+              placement: "lower-right",
+              duration_seconds: 7,
+            },
+          }),
+        ),
+      );
     }
 
     return Promise.resolve(new Response(JSON.stringify({ status: "ok" })));

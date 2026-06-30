@@ -20,3 +20,7 @@ class ExplainResponse(BaseModel):
     overlay: OverlayPayload
     prompt_template: str
     silent_recommended: bool
+    why_now: str
+    silence_rule: str
+    retrieval_sources: list[str]
+    evidence: list[str]

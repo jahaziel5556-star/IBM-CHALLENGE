@@ -53,6 +53,10 @@ Response:
 
 Stores the active local profile and presentation settings.
 
+### `GET /api/profile`
+
+Returns the active viewer profile and accessibility settings.
+
 ### `GET /api/settings`
 
 Returns defaults for placement, overlay timing, and accessibility options.

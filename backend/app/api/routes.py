@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
-from app.schemas.profile import ProfileRequest, SettingsResponse
+from app.schemas.profile import ProfileRequest, ProfileResponse, SettingsResponse
 from app.schemas.explain import ExplainRequest, ExplainResponse
 from app.services.explanation_service import ExplanationService
 from app.services.match_service import MatchService
@@ -91,6 +91,15 @@ def update_profile(request: ProfileRequest) -> dict:
     session, _, profile_service, _ = _build_services()
     try:
         return profile_service.update_profile(request)
+    finally:
+        session.close()
+
+
+@router.get("/api/profile", response_model=ProfileResponse)
+def get_profile() -> ProfileResponse:
+    session, _, profile_service, _ = _build_services()
+    try:
+        return profile_service.get_profile()
     finally:
         session.close()
 

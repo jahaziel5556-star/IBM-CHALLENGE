@@ -48,3 +48,18 @@ def test_profile_persists_in_settings() -> None:
     assert update.status_code == 200
     assert settings.status_code == 200
     assert settings.json()["accessibility"]["large_text"] is True
+
+
+def test_get_profile() -> None:
+    response = client.get("/api/profile")
+    assert response.status_code == 200
+    assert "profile" in response.json()
+
+
+def test_explain_includes_rule_context() -> None:
+    response = client.post("/api/explain", json={"profile": "new_fan", "event_id": "evt-highpress-12"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["why_now"]
+    assert payload["retrieval_sources"]
+    assert payload["evidence"]

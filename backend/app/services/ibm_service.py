@@ -30,4 +30,5 @@ class GraniteService:
             "confidence": event.get("confidence", guidance["default_confidence"]),
             "law_reference": law_reference,
             "prompt_template": prompt_template,
+            "evidence": guidance["evidence"],
         }

@@ -9,6 +9,14 @@ class ProfileRequest(BaseModel):
     reduced_motion: bool = False
 
 
+class ProfileResponse(BaseModel):
+    profile: str
+    language: str
+    large_text: bool
+    high_contrast: bool
+    reduced_motion: bool
+
+
 class SettingsResponse(BaseModel):
     placement: str
     durations: dict[str, int]

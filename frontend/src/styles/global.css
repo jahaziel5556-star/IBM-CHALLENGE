@@ -38,6 +38,18 @@ button {
   overflow: hidden;
 }
 
+.app-shell-large-text {
+  font-size: 1.08rem;
+}
+
+.app-shell-high-contrast {
+  --panel: rgba(0, 0, 0, 0.92);
+  --panel-strong: rgba(0, 0, 0, 0.98);
+  --line: rgba(255, 255, 255, 0.42);
+  --text: #ffffff;
+  --muted: #f0f0f0;
+}
+
 .background-glow {
   position: absolute;
   width: 420px;
@@ -132,6 +144,22 @@ button {
 .controls-panel {
   display: grid;
   gap: 20px;
+}
+
+.settings-list {
+  display: grid;
+  gap: 10px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .profile-grid {
@@ -314,9 +342,29 @@ button {
 
 .overlay-meta {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.overlay-support {
+  color: var(--muted);
+}
+
+.overlay-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.evidence-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.8rem;
 }
 
 .sidebar-panel {

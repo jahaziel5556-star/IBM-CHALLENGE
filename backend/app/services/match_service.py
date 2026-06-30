@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from sqlalchemy.orm import Session
 
 from app.repositories.match_repository import MatchRepository
@@ -6,6 +9,10 @@ from app.repositories.match_repository import MatchRepository
 class MatchService:
     def __init__(self, session: Session) -> None:
         self.repository = MatchRepository(session)
+        rules_path = Path(__file__).resolve().parents[1] / "data" / "event_rules.json"
+        with rules_path.open("r", encoding="utf-8") as file:
+            rule_items = json.load(file)
+        self.rule_details = {item["event_type"]: item for item in rule_items}
 
     def list_matches(self) -> list[dict]:
         return [self._serialize_match(match) for match in self.repository.list_matches()]
@@ -38,6 +45,7 @@ class MatchService:
 
     def _serialize_event(self, event: object) -> dict:
         rule = self.repository.get_rule(event.type)
+        rule_details = self.rule_details.get(event.type, {})
         return {
             "id": event.id,
             "match_id": event.match_id,
@@ -56,6 +64,9 @@ class MatchService:
                 "event_type": rule.event_type,
                 "prompt_template": rule.prompt_template,
                 "overlay_seconds": rule.overlay_seconds,
+                "retrieval_sources": rule_details.get("retrieval_sources", []),
+                "trigger_summary": rule_details.get("trigger_summary", ""),
+                "silence_summary": rule_details.get("silence_summary", ""),
             }
             if rule
             else None,
