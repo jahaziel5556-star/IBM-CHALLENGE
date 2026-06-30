@@ -21,6 +21,7 @@ export function EventTimeline({ events, selectedEventId, queuedEventIds, onExpla
             <h3>{event.title}</h3>
             <p>{event.summary}</p>
             <div className="timeline-meta">
+              <span>P{event.rule.priority}</span>
               <span>{event.rule.prompt_template}</span>
               {queuedEventIds.includes(event.id) ? <span>Queued</span> : <span>Ready</span>}
             </div>

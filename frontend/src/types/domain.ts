@@ -29,6 +29,7 @@ export type MatchEvent = {
     event_type: string;
     prompt_template: string;
     overlay_seconds: number;
+    priority: number;
     retrieval_sources: string[];
     trigger_summary: string;
     silence_summary: string;

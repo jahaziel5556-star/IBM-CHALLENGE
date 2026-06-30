@@ -3,6 +3,7 @@
     "event_type": "goal",
     "prompt_template": "momentum_analysis",
     "overlay_seconds": 6,
+    "priority": 90,
     "retrieval_sources": ["match_context", "tactical_knowledge"],
     "trigger_summary": "Explain goals only when buildup or controversy adds real understanding.",
     "silence_summary": "Stay silent for routine finishes that viewers already understand."
@@ -11,6 +12,7 @@
     "event_type": "var_review",
     "prompt_template": "law_interpretation",
     "overlay_seconds": 8,
+    "priority": 100,
     "retrieval_sources": ["fifa_laws", "referee_guidance", "match_context"],
     "trigger_summary": "Speak after the review point is visible and the decision context is clear.",
     "silence_summary": "Stay silent during unresolved review unless showing a pending state."
@@ -19,6 +21,7 @@
     "event_type": "offside",
     "prompt_template": "law_interpretation",
     "overlay_seconds": 7,
+    "priority": 88,
     "retrieval_sources": ["fifa_laws", "match_context"],
     "trigger_summary": "Explain close or confusing offsides, especially disallowed goals.",
     "silence_summary": "Stay silent for obvious routine offsides away from danger."
@@ -27,6 +30,7 @@
     "event_type": "penalty",
     "prompt_template": "officiating_decision",
     "overlay_seconds": 7,
+    "priority": 95,
     "retrieval_sources": ["fifa_laws", "referee_guidance", "match_context"],
     "trigger_summary": "Explain after the decision or after the decisive replay shows contact.",
     "silence_summary": "Stay silent when contact is too uncertain to ground confidently."
@@ -35,6 +39,7 @@
     "event_type": "red_card",
     "prompt_template": "officiating_decision",
     "overlay_seconds": 8,
+    "priority": 96,
     "retrieval_sources": ["fifa_laws", "referee_guidance", "match_context"],
     "trigger_summary": "Explain dismissals once the referee outcome is clear.",
     "silence_summary": "Stay silent before the card outcome becomes official."
@@ -43,6 +48,7 @@
     "event_type": "yellow_card",
     "prompt_template": "officiating_decision",
     "overlay_seconds": 6,
+    "priority": 62,
     "retrieval_sources": ["fifa_laws", "match_context"],
     "trigger_summary": "Explain tactical or confusing cautions that affect understanding.",
     "silence_summary": "Stay silent for standard obvious cautions."
@@ -51,6 +57,7 @@
     "event_type": "tactical_formation_change",
     "prompt_template": "tactical_shift",
     "overlay_seconds": 7,
+    "priority": 72,
     "retrieval_sources": ["tactical_knowledge", "match_context"],
     "trigger_summary": "Explain shape changes when they materially alter control or width.",
     "silence_summary": "Stay silent for subtle shape adjustments with little visible effect."
@@ -59,6 +66,7 @@
     "event_type": "momentum_shift",
     "prompt_template": "momentum_analysis",
     "overlay_seconds": 6,
+    "priority": 75,
     "retrieval_sources": ["match_context", "tactical_knowledge"],
     "trigger_summary": "Explain sustained swings in pressure, field tilt, or duel control.",
     "silence_summary": "Stay silent for brief emotional swings with no tactical follow-through."
@@ -67,6 +75,7 @@
     "event_type": "high_press_detected",
     "prompt_template": "tactical_shift",
     "overlay_seconds": 6,
+    "priority": 68,
     "retrieval_sources": ["tactical_knowledge", "match_context"],
     "trigger_summary": "Explain coordinated pressing traps that visibly change buildup quality.",
     "silence_summary": "Stay silent for isolated pressure moments."
@@ -75,6 +84,7 @@
     "event_type": "defensive_block_change",
     "prompt_template": "tactical_shift",
     "overlay_seconds": 6,
+    "priority": 65,
     "retrieval_sources": ["tactical_knowledge", "match_context"],
     "trigger_summary": "Explain when the block line or compactness clearly changes progression.",
     "silence_summary": "Stay silent if the defensive shape remains functionally similar."
@@ -83,6 +93,7 @@
     "event_type": "counterattack",
     "prompt_template": "momentum_analysis",
     "overlay_seconds": 5,
+    "priority": 70,
     "retrieval_sources": ["match_context", "tactical_knowledge"],
     "trigger_summary": "Explain dangerous transition attacks created by imbalance.",
     "silence_summary": "Stay silent for harmless direct breaks."
@@ -91,6 +102,7 @@
     "event_type": "dangerous_attack",
     "prompt_template": "momentum_analysis",
     "overlay_seconds": 5,
+    "priority": 58,
     "retrieval_sources": ["match_context", "tactical_knowledge"],
     "trigger_summary": "Explain attacks when the tactical cause is not obvious to casual viewers.",
     "silence_summary": "Stay silent for normal entries without special explanatory value."
@@ -99,6 +111,7 @@
     "event_type": "injury",
     "prompt_template": "player_welfare",
     "overlay_seconds": 5,
+    "priority": 54,
     "retrieval_sources": ["match_context"],
     "trigger_summary": "Explain injuries when they change tempo, shape, or player availability.",
     "silence_summary": "Stay silent for brief treatment with no tactical effect."
@@ -107,6 +120,7 @@
     "event_type": "substitution",
     "prompt_template": "substitution_impact",
     "overlay_seconds": 6,
+    "priority": 64,
     "retrieval_sources": ["match_context", "tactical_knowledge", "profile_context"],
     "trigger_summary": "Explain substitutions that change shape, pressure, or attacking intent.",
     "silence_summary": "Stay silent for routine time-management substitutions."

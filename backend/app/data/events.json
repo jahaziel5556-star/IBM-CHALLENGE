@@ -13,6 +13,20 @@
     "confidence": "high"
   },
   {
+    "id": "evt-yellow-18",
+    "match_id": "match-world-final-001",
+    "minute": 18,
+    "type": "yellow_card",
+    "title": "Tactical Yellow Card",
+    "team": "Crimson United",
+    "opponent": "Blue City",
+    "summary": "A deliberate foul stopped Blue City's transition before the midfield line was broken.",
+    "analysis": "The caution matters because Crimson United chose to halt the break before the press could be bypassed.",
+    "child_summary": "The player pulled the attack back on purpose, so the referee showed a yellow card.",
+    "confidence": "high",
+    "law_reference": "Law 12"
+  },
+  {
     "id": "evt-offside-24",
     "match_id": "match-world-final-001",
     "minute": 24,
@@ -27,6 +41,58 @@
     "law_reference": "Law 11"
   },
   {
+    "id": "evt-danger-31",
+    "match_id": "match-world-final-001",
+    "minute": 31,
+    "type": "dangerous_attack",
+    "title": "Dangerous Attack",
+    "team": "Blue City",
+    "opponent": "Crimson United",
+    "summary": "Blue City overloaded the left side and created a cutback lane across the box.",
+    "analysis": "The danger came from pinning the fullback and pulling the near center-back wide, which opened the inside channel.",
+    "child_summary": "Blue City moved defenders away and made a good space near goal.",
+    "confidence": "medium"
+  },
+  {
+    "id": "evt-goal-34",
+    "match_id": "match-world-final-001",
+    "minute": 34,
+    "type": "goal",
+    "title": "Blue City Take The Lead",
+    "team": "Blue City",
+    "opponent": "Crimson United",
+    "summary": "The goal came after repeated left-side overloads finally opened a clean cutback finish.",
+    "analysis": "Blue City kept creating the same advantage until Crimson United's far-side tracking broke too late.",
+    "child_summary": "Blue City kept attacking the same space until they found an easy shot.",
+    "confidence": "high"
+  },
+  {
+    "id": "evt-injury-48",
+    "match_id": "match-world-final-001",
+    "minute": 48,
+    "type": "injury",
+    "title": "Brief Injury Stoppage",
+    "team": "Crimson United",
+    "opponent": "Blue City",
+    "summary": "A central midfielder is receiving treatment after a collision and play has slowed.",
+    "analysis": "The stoppage matters because it interrupts Crimson United's pressing rhythm and may force an earlier change.",
+    "child_summary": "A player got hurt, so the game is stopping for a moment.",
+    "confidence": "medium"
+  },
+  {
+    "id": "evt-formation-55",
+    "match_id": "match-world-final-001",
+    "minute": 55,
+    "type": "tactical_formation_change",
+    "title": "Formation Change Detected",
+    "team": "Crimson United",
+    "opponent": "Blue City",
+    "summary": "Crimson United have shifted into a back three to free both wing-backs higher.",
+    "analysis": "The shape change is designed to widen Blue City's press and create more direct access into the half-spaces.",
+    "child_summary": "Crimson United changed their shape so more players can attack the sides.",
+    "confidence": "medium"
+  },
+  {
     "id": "evt-penalty-62",
     "match_id": "match-world-final-001",
     "minute": 62,
@@ -37,6 +103,20 @@
     "summary": "The defender made contact before winning the ball and stopped the shot path.",
     "analysis": "The recovery run was late, the tackle line came across the attacker, and the defender clipped the player before clean ball contact was possible.",
     "child_summary": "The defender hit the player first instead of getting the ball first.",
+    "confidence": "high",
+    "law_reference": "Law 12"
+  },
+  {
+    "id": "evt-var-64",
+    "match_id": "match-world-final-001",
+    "minute": 64,
+    "type": "var_review",
+    "title": "VAR Review Confirmed",
+    "team": "Blue City",
+    "opponent": "Crimson United",
+    "summary": "VAR checked the penalty contact and confirmed the on-field decision.",
+    "analysis": "The review matters because it validates the foul sequence after replay showed the defender clipped the attacker first.",
+    "child_summary": "The video check agreed that the foul happened.",
     "confidence": "high",
     "law_reference": "Law 12"
   },
@@ -54,6 +134,19 @@
     "confidence": "medium"
   },
   {
+    "id": "evt-counter-73",
+    "match_id": "match-world-final-001",
+    "minute": 73,
+    "type": "counterattack",
+    "title": "Counterattack Break",
+    "team": "Crimson United",
+    "opponent": "Blue City",
+    "summary": "Crimson United broke immediately after regaining the ball and attacked the unprotected flank.",
+    "analysis": "The transition succeeded because Blue City's rest defense was stretched after committing both fullbacks high.",
+    "child_summary": "Crimson United won the ball and ran into open space very quickly.",
+    "confidence": "high"
+  },
+  {
     "id": "evt-sub-78",
     "match_id": "match-world-final-001",
     "minute": 78,
@@ -65,5 +158,19 @@
     "analysis": "The change shifts the attack toward direct isolation on the flank, aiming to stretch the back line and create deeper cutback zones.",
     "child_summary": "The coach brought on a fast player to attack the side spaces.",
     "confidence": "medium"
+  },
+  {
+    "id": "evt-red-86",
+    "match_id": "match-world-final-001",
+    "minute": 86,
+    "type": "red_card",
+    "title": "Late Red Card",
+    "team": "Crimson United",
+    "opponent": "Blue City",
+    "summary": "A last-defender foul stopped a clear breakaway and the referee showed a red card.",
+    "analysis": "The dismissal changes the endgame because Crimson United must finish with ten players while chasing the match.",
+    "child_summary": "The player stopped a big chance unfairly, so the referee sent them off.",
+    "confidence": "high",
+    "law_reference": "Law 12"
   }
 ]

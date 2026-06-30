@@ -28,6 +28,8 @@ export default function App() {
   });
   const [queuedEventIds, setQueuedEventIds] = useState<string[]>([]);
   const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const [processedEventIds, setProcessedEventIds] = useState<string[]>([]);
+  const [lastExplainedMinute, setLastExplainedMinute] = useState<number | null>(null);
 
   useEffect(() => {
     void apiGet<MatchSummary[]>("/api/matches").then((loadedMatches) => {
@@ -59,14 +61,26 @@ export default function App() {
 
     let cancelled = false;
     const delay = profileSettings.reduced_motion ? 2600 : 1800;
+    const remainingEvents = [...events]
+      .filter((event) => !processedEventIds.includes(event.id))
+      .sort((left, right) => left.minute - right.minute);
 
     async function runSequence() {
-      for (const event of events) {
+      for (const event of remainingEvents) {
         if (cancelled) {
           return;
         }
+        const shouldQueue =
+          lastExplainedMinute === null ||
+          event.minute - lastExplainedMinute >= 6 ||
+          event.rule.priority >= 90;
+
+        if (!shouldQueue) {
+          continue;
+        }
+
         setQueuedEventIds((current) => [...current, event.id]);
-        await handleExplain(event.id);
+        await handleExplain(event.id, { fromAutoRun: true });
         if (cancelled) {
           return;
         }
@@ -80,12 +94,19 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [isAutoRunning, events, profileSettings.reduced_motion]);
+  }, [isAutoRunning, events, lastExplainedMinute, processedEventIds, profileSettings.reduced_motion]);
 
-  async function handleExplain(eventId: string) {
+  async function handleExplain(eventId: string, options?: { fromAutoRun?: boolean }) {
     setSelectedEventId(eventId);
     const insight = await apiPost<ExplainResponse>("/api/explain", { profile, event_id: eventId });
     setQueuedEventIds((current) => current.filter((queuedId) => queuedId !== eventId));
+    const event = events.find((item) => item.id === eventId);
+    if (event) {
+      setLastExplainedMinute(event.minute);
+    }
+    if (options?.fromAutoRun) {
+      setProcessedEventIds((current) => [...new Set([...current, eventId])]);
+    }
     setActiveInsight(insight);
   }
 
@@ -107,6 +128,8 @@ export default function App() {
 
   function handleStartAutoRun() {
     setQueuedEventIds([]);
+    setProcessedEventIds([]);
+    setLastExplainedMinute(null);
     setIsAutoRunning(true);
   }
 

@@ -64,6 +64,7 @@ class MatchService:
                 "event_type": rule.event_type,
                 "prompt_template": rule.prompt_template,
                 "overlay_seconds": rule.overlay_seconds,
+                "priority": rule_details.get("priority", 50),
                 "retrieval_sources": rule_details.get("retrieval_sources", []),
                 "trigger_summary": rule_details.get("trigger_summary", ""),
                 "silence_summary": rule_details.get("silence_summary", ""),
