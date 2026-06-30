@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     ibm_watsonx_project_id: str = Field(default="", alias="IBM_WATSONX_PROJECT_ID")
     ibm_watsonx_url: str = Field(default="https://us-south.ml.cloud.ibm.com", alias="IBM_WATSONX_URL")
     ibm_watsonx_model_id: str = Field(default="granite-3-2b-instruct", alias="IBM_WATSONX_MODEL_ID")
+    ibm_watsonx_api_version: str = Field(default="2025-10-25", alias="IBM_WATSONX_API_VERSION")
+    ibm_watsonx_timeout_seconds: int = Field(default=30, alias="IBM_WATSONX_TIMEOUT_SECONDS")
     ibm_watsonx_use_mock: bool = Field(default=True, alias="IBM_WATSONX_USE_MOCK")
 
 

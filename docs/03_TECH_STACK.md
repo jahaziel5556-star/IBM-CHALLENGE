@@ -16,6 +16,7 @@
 - Uvicorn
 - SQLAlchemy
 - Alembic-ready structure
+- watsonx.ai chat API adapter with mock fallback
 
 ## Testing
 

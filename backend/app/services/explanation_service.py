@@ -1,3 +1,4 @@
+from app.prompts.prompt_builder import PromptBuilder
 from app.schemas.explain import ExplainRequest, ExplainResponse, OverlayPayload
 from app.services.ibm_service import GraniteService
 from app.services.match_service import MatchService
@@ -9,6 +10,7 @@ class ExplanationService:
         self.match_service = match_service
         self.profile_service = profile_service
         self.ibm_service = GraniteService()
+        self.prompt_builder = PromptBuilder()
 
     def explain_event(self, request: ExplainRequest) -> ExplainResponse:
         event = self.match_service.get_event(request.event_id)
@@ -17,11 +19,13 @@ class ExplanationService:
 
         rule = event["rule"]
         guidance = self._build_guidance(event=event, profile=request.profile)
+        prompt_payload = self.prompt_builder.build(event=event, profile=request.profile)
         model_output = self.ibm_service.generate(
             prompt_template=rule["prompt_template"],
             event=event,
             profile=request.profile,
             guidance=guidance,
+            prompt_payload=prompt_payload,
         )
 
         return ExplainResponse(
