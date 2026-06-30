@@ -153,10 +153,11 @@ export default function App() {
     };
   }, [isAutoRunning, events, isDemoRunning, lastExplainedMinute, processedEventIds, profileSettings.reduced_motion, demoScript]);
 
-  async function handleExplain(eventId: string, options?: { fromAutoRun?: boolean }) {
+  async function handleExplain(eventId: string, options?: { fromAutoRun?: boolean; requestProfile?: ProfileId }) {
     setSelectedEventId(eventId);
     try {
-      const insight = await apiPost<ExplainResponse>("/api/explain", { profile, event_id: eventId });
+      const activeProfile = options?.requestProfile ?? profile;
+      const insight = await apiPost<ExplainResponse>("/api/explain", { profile: activeProfile, event_id: eventId });
       setQueuedEventIds((current) => current.filter((queuedId) => queuedId !== eventId));
       const event = events.find((item) => item.id === eventId);
       if (event) {
@@ -164,12 +165,12 @@ export default function App() {
         setInsightHistory((current) => [
           {
             eventId,
-            profile,
+            profile: activeProfile,
             insight,
             minute: event.minute,
             title: event.title,
           },
-          ...current.filter((entry) => !(entry.eventId === eventId && entry.profile === profile)),
+          ...current.filter((entry) => !(entry.eventId === eventId && entry.profile === activeProfile)),
         ]);
       }
       if (options?.fromAutoRun) {
@@ -190,7 +191,7 @@ export default function App() {
     setProfileSettings(nextSettings);
     await apiPost("/api/profile", nextSettings);
     if (selectedEventId) {
-      void handleExplain(selectedEventId);
+      void handleExplain(selectedEventId, { requestProfile: nextProfile });
     }
   }
 

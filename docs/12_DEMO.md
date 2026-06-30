@@ -31,6 +31,7 @@ Show that MatchMind One improves understanding without interrupting the live foo
 
 - Frontend: `cd frontend && npm run dev`
 - Backend: `cd backend && .venv\Scripts\activate && uvicorn app.main:app --reload`
+- Browser validation: `cd frontend && npm run test:e2e`
 
 ## Demo Success Criteria
 
@@ -38,3 +39,4 @@ Show that MatchMind One improves understanding without interrupting the live foo
 - Overlay timing looks broadcast-safe.
 - Profile switching visibly changes explanation style.
 - Replay window and evidence improve trust.
+- The E2E demo-flow test passes against the local stack.

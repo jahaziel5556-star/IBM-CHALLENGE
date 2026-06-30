@@ -16,6 +16,7 @@
 - profile switch behavior
 - overlay card rendering
 - match timeline rendering
+- Playwright demo-flow validation across real frontend and backend processes
 
 ## Acceptance Checks
 
@@ -24,3 +25,5 @@
 - overlay duration follows event-engine defaults
 - fallback mock explanations never fabricate laws when unavailable
 - health and summary endpoints expose IBM mode plus database backend for demos
+- profile switching immediately re-explains the active event with the newly selected profile
+- browser-level demo flow confirms overlay generation, insight history, and accessibility controls

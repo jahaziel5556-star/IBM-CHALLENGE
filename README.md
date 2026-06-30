@@ -32,6 +32,15 @@ npm install
 npm run dev
 ```
 
+### End-To-End Demo Validation
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+This launches isolated local frontend and backend servers on dedicated high ports, then verifies the judge/demo flow in a real browser.
+
 ### Backend
 
 ```bash
@@ -77,3 +86,10 @@ The implementation is structured around IBM watsonx.ai and Granite through backe
 - Local quick start: SQLite with automatic schema initialization and seeded demo data
 - Production-shaped local stack: PostgreSQL through Docker Compose plus Alembic migrations
 - Docker backend startup now applies `alembic upgrade head` before starting the API
+
+## Validation Snapshot
+
+- Backend API tests pass with `py -m pytest`
+- Frontend component tests pass with `npm run test`
+- Frontend production build passes with `npm run build`
+- Browser-level demo verification passes with `npm run test:e2e`

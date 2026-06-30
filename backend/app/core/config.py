@@ -11,7 +11,14 @@ class Settings(BaseSettings):
     env: str = Field(default="development", alias="MATCHMIND_ENV")
     backend_host: str = Field(default="127.0.0.1", alias="BACKEND_HOST")
     backend_port: int = Field(default=8000, alias="BACKEND_PORT")
-    cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:4317",
+        "http://127.0.0.1:4317",
+        "http://localhost:43173",
+        "http://127.0.0.1:43173",
+    ]
     database_url: str = Field(default="sqlite:///./matchmind_one.db", alias="DATABASE_URL")
     database_auto_init: bool = Field(default=True, alias="DATABASE_AUTO_INIT")
     database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
