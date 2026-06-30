@@ -10,9 +10,11 @@ import { MatchStage } from "./components/MatchStage";
 import { ProfileSwitcher } from "./components/ProfileSwitcher";
 import { ReplaySpotlight } from "./components/ReplaySpotlight";
 import { SettingsPanel } from "./components/SettingsPanel";
-import type { ExplainResponse, MatchEvent, MatchSummary, ProfileId, ProfileSettings } from "./types/domain";
+import { StateNotice } from "./components/StateNotice";
+import type { ExplainResponse, HealthResponse, MatchEvent, MatchSummary, ProfileId, ProfileSettings } from "./types/domain";
 
 const profiles: ProfileId[] = ["new_fan", "casual_viewer", "analyst", "child", "accessibility"];
+const demoSequence = ["evt-offside-24", "evt-penalty-62", "evt-var-64", "evt-goal-81", "evt-red-86"];
 
 export default function App() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
@@ -31,19 +33,39 @@ export default function App() {
   const [isAutoRunning, setIsAutoRunning] = useState(false);
   const [processedEventIds, setProcessedEventIds] = useState<string[]>([]);
   const [lastExplainedMinute, setLastExplainedMinute] = useState<number | null>(null);
+  const [isDemoRunning, setIsDemoRunning] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [health, setHealth] = useState<HealthResponse>({ status: "unknown", service: "matchmind-one-api", ibm_mode: "mock" });
 
   useEffect(() => {
-    void apiGet<MatchSummary[]>("/api/matches").then((loadedMatches) => {
-      setMatches(loadedMatches);
-      const primaryMatch = loadedMatches[0];
-      if (primaryMatch) {
-        void apiGet<MatchEvent[]>(`/api/matches/${primaryMatch.id}/events`).then(setEvents);
+    async function loadApp() {
+      try {
+        setIsLoading(true);
+        const [healthResponse, loadedMatches, loadedProfile] = await Promise.all([
+          apiGet<HealthResponse>("/health"),
+          apiGet<MatchSummary[]>("/api/matches"),
+          apiGet<ProfileSettings>("/api/profile"),
+        ]);
+        setHealth(healthResponse);
+        setMatches(loadedMatches);
+        setProfile(loadedProfile.profile);
+        setProfileSettings(loadedProfile);
+
+        const primaryMatch = loadedMatches[0];
+        if (primaryMatch) {
+          const loadedEvents = await apiGet<MatchEvent[]>(`/api/matches/${primaryMatch.id}/events`);
+          setEvents(loadedEvents);
+        }
+        setErrorMessage("");
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Unable to load MatchMind One.");
+      } finally {
+        setIsLoading(false);
       }
-    });
-    void apiGet<ProfileSettings>("/api/profile").then((loadedProfile) => {
-      setProfile(loadedProfile.profile);
-      setProfileSettings(loadedProfile);
-    });
+    }
+
+    void loadApp();
   }, []);
 
   useEffect(() => {
@@ -62,7 +84,10 @@ export default function App() {
 
     let cancelled = false;
     const delay = profileSettings.reduced_motion ? 2600 : 1800;
-    const remainingEvents = [...events]
+    const sequenceSource = isDemoRunning ? demoSequence : events.map((event) => event.id);
+    const remainingEvents = sequenceSource
+      .map((eventId) => events.find((event) => event.id === eventId))
+      .filter((event): event is MatchEvent => Boolean(event))
       .filter((event) => !processedEventIds.includes(event.id))
       .sort((left, right) => left.minute - right.minute);
 
@@ -88,6 +113,7 @@ export default function App() {
         await new Promise((resolve) => window.setTimeout(resolve, delay));
       }
       setIsAutoRunning(false);
+      setIsDemoRunning(false);
     }
 
     void runSequence();
@@ -95,20 +121,27 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [isAutoRunning, events, lastExplainedMinute, processedEventIds, profileSettings.reduced_motion]);
+  }, [isAutoRunning, events, isDemoRunning, lastExplainedMinute, processedEventIds, profileSettings.reduced_motion]);
 
   async function handleExplain(eventId: string, options?: { fromAutoRun?: boolean }) {
     setSelectedEventId(eventId);
-    const insight = await apiPost<ExplainResponse>("/api/explain", { profile, event_id: eventId });
-    setQueuedEventIds((current) => current.filter((queuedId) => queuedId !== eventId));
-    const event = events.find((item) => item.id === eventId);
-    if (event) {
-      setLastExplainedMinute(event.minute);
+    try {
+      const insight = await apiPost<ExplainResponse>("/api/explain", { profile, event_id: eventId });
+      setQueuedEventIds((current) => current.filter((queuedId) => queuedId !== eventId));
+      const event = events.find((item) => item.id === eventId);
+      if (event) {
+        setLastExplainedMinute(event.minute);
+      }
+      if (options?.fromAutoRun) {
+        setProcessedEventIds((current) => [...new Set([...current, eventId])]);
+      }
+      setActiveInsight(insight);
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Insight generation failed.");
+      setIsAutoRunning(false);
+      setIsDemoRunning(false);
     }
-    if (options?.fromAutoRun) {
-      setProcessedEventIds((current) => [...new Set([...current, eventId])]);
-    }
-    setActiveInsight(insight);
   }
 
   async function handleProfileChange(nextProfile: ProfileId) {
@@ -131,11 +164,21 @@ export default function App() {
     setQueuedEventIds([]);
     setProcessedEventIds([]);
     setLastExplainedMinute(null);
+    setIsDemoRunning(false);
+    setIsAutoRunning(true);
+  }
+
+  function handleStartDemo() {
+    setQueuedEventIds([]);
+    setProcessedEventIds([]);
+    setLastExplainedMinute(null);
+    setIsDemoRunning(true);
     setIsAutoRunning(true);
   }
 
   function handleStopAutoRun() {
     setIsAutoRunning(false);
+    setIsDemoRunning(false);
     setQueuedEventIds([]);
   }
 
@@ -169,7 +212,7 @@ export default function App() {
       <div className="background-glow background-glow-left" />
       <div className="background-glow background-glow-right" />
 
-      <HeaderBar />
+      <HeaderBar serviceMode={health.ibm_mode} isHealthy={health.status === "ok"} />
       <main className="page-grid">
         <section className="hero-panel">
           <div className="hero-copy">
@@ -186,8 +229,10 @@ export default function App() {
             <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
             <BroadcastControls
               isAutoRunning={isAutoRunning}
+              isDemoRunning={isDemoRunning}
               queueLength={queuedEventIds.length}
               onStart={handleStartAutoRun}
+              onStartDemo={handleStartDemo}
               onStop={handleStopAutoRun}
             />
             <DemoGuide currentMinute={liveMinute} currentScore={liveScore} isAutoRunning={isAutoRunning} />
@@ -198,6 +243,15 @@ export default function App() {
         </section>
 
         <section className="broadcast-panel">
+          {errorMessage ? (
+            <StateNotice title="System Notice" message={errorMessage} tone="error" />
+          ) : null}
+          {isLoading ? (
+            <StateNotice
+              title="Loading Broadcast"
+              message="Fetching match context, viewer profile, and event engine state."
+            />
+          ) : null}
           <MatchStage
             match={matches[0]}
             activeEvent={selectedEvent}
@@ -215,6 +269,9 @@ export default function App() {
             Each event follows the official rulebook in the event engine spec, including timing, silence, confidence,
             and prompt-template mapping.
           </p>
+          {!isLoading && events.length === 0 ? (
+            <StateNotice title="No Events" message="No seeded events are available for the active match yet." />
+          ) : null}
           <ReplaySpotlight event={selectedEvent} />
           <EventTimeline
             events={events}

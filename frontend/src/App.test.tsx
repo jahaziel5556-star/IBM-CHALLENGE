@@ -26,6 +26,18 @@ vi.stubGlobal(
       );
     }
 
+    if (url.endsWith("/health")) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            status: "ok",
+            service: "matchmind-one-api",
+            ibm_mode: "mock",
+          }),
+        ),
+      );
+    }
+
     if (url.endsWith("/api/profile")) {
       return Promise.resolve(
         new Response(
@@ -263,5 +275,6 @@ describe("App", () => {
     expect(screen.getByText(/Live Event Engine/i)).toBeInTheDocument();
     expect(screen.getByText(/Broadcast Simulation/i)).toBeInTheDocument();
     expect(screen.getByText(/Judge Demo Flow/i)).toBeInTheDocument();
+    expect(screen.getByText(/Service Ready/i)).toBeInTheDocument();
   });
 });

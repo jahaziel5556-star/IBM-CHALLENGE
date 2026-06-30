@@ -111,6 +111,11 @@ input {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.status-pill-error {
+  border-color: rgba(251, 113, 133, 0.45);
+  background: rgba(251, 113, 133, 0.12);
+}
+
 .page-grid {
   display: grid;
   grid-template-columns: 1.1fr 1.4fr 1fr;
@@ -263,10 +268,36 @@ input {
   cursor: pointer;
 }
 
+.secondary-button {
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  cursor: pointer;
+}
+
 .broadcast-panel {
   position: relative;
   padding: 20px;
   min-height: 620px;
+}
+
+.state-notice {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.state-notice p:last-child {
+  margin: 8px 0 0;
+}
+
+.state-notice-error {
+  background: rgba(251, 113, 133, 0.1);
+  border-color: rgba(251, 113, 133, 0.3);
 }
 
 .match-stage {

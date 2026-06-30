@@ -14,6 +14,12 @@ export type MatchSummary = {
   };
 };
 
+export type HealthResponse = {
+  status: string;
+  service: string;
+  ibm_mode: string;
+};
+
 export type MatchEvent = {
   id: string;
   match_id: string;
