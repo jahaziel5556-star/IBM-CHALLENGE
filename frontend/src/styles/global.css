@@ -180,6 +180,21 @@ input {
   gap: 12px;
 }
 
+.demo-step {
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.demo-step-active {
+  border-color: rgba(45, 212, 191, 0.42);
+  background: rgba(45, 212, 191, 0.1);
+}
+
 .demo-label {
   margin: 0 0 6px;
   color: var(--accent);
@@ -249,7 +264,10 @@ input {
 
 .profile-chip:hover,
 .timeline-card:hover,
-.primary-button:hover {
+.primary-button:hover,
+.secondary-button:hover,
+.demo-step:hover,
+.history-item:hover {
   transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.18);
 }
@@ -507,12 +525,42 @@ input {
   padding: 24px;
 }
 
-.replay-card {
+.replay-card,
+.history-card {
   margin-top: 18px;
   padding: 18px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.history-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.history-item {
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.history-item p,
+.history-item strong {
+  margin: 6px 0 0;
+}
+
+.history-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 .replay-header {
@@ -638,6 +686,9 @@ input {
   .profile-chip,
   .timeline-card,
   .primary-button,
+  .secondary-button,
+  .demo-step,
+  .history-item,
   .insight-overlay {
     transition: none;
     animation: none;

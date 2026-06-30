@@ -294,8 +294,9 @@ describe("App", () => {
     render(<App />);
     expect(await screen.findByText(/Explain the match/i)).toBeInTheDocument();
     expect(screen.getByText(/Live Event Engine/i)).toBeInTheDocument();
-    expect(screen.getByText(/Broadcast Simulation/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Start Auto-Run/i })).toBeInTheDocument();
     expect(screen.getByText(/Judge Demo Flow/i)).toBeInTheDocument();
     expect(screen.getByText(/Service Ready/i)).toBeInTheDocument();
+    expect(screen.getByText(/Insight History/i)).toBeInTheDocument();
   });
 });

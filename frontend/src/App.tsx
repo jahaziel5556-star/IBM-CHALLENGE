@@ -5,6 +5,7 @@ import { BroadcastControls } from "./components/BroadcastControls";
 import { DemoGuide } from "./components/DemoGuide";
 import { EventTimeline } from "./components/EventTimeline";
 import { HeaderBar } from "./components/HeaderBar";
+import { InsightHistory } from "./components/InsightHistory";
 import { InsightOverlay } from "./components/InsightOverlay";
 import { MatchStage } from "./components/MatchStage";
 import { ProfileSwitcher } from "./components/ProfileSwitcher";
@@ -45,6 +46,15 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [health, setHealth] = useState<HealthResponse>({ status: "unknown", service: "matchmind-one-api", ibm_mode: "mock" });
   const [demoScript, setDemoScript] = useState<DemoScriptStep[]>([]);
+  const [insightHistory, setInsightHistory] = useState<
+    Array<{
+      eventId: string;
+      profile: ProfileId;
+      insight: ExplainResponse;
+      minute: number;
+      title: string;
+    }>
+  >([]);
 
   useEffect(() => {
     async function loadApp() {
@@ -141,6 +151,16 @@ export default function App() {
       const event = events.find((item) => item.id === eventId);
       if (event) {
         setLastExplainedMinute(event.minute);
+        setInsightHistory((current) => [
+          {
+            eventId,
+            profile,
+            insight,
+            minute: event.minute,
+            title: event.title,
+          },
+          ...current.filter((entry) => !(entry.eventId === eventId && entry.profile === profile)),
+        ]);
       }
       if (options?.fromAutoRun) {
         setProcessedEventIds((current) => [...new Set([...current, eventId])]);
@@ -174,6 +194,7 @@ export default function App() {
     setQueuedEventIds([]);
     setProcessedEventIds([]);
     setLastExplainedMinute(null);
+    setInsightHistory([]);
     setIsDemoRunning(false);
     setIsAutoRunning(true);
   }
@@ -182,6 +203,7 @@ export default function App() {
     setQueuedEventIds([]);
     setProcessedEventIds([]);
     setLastExplainedMinute(null);
+    setInsightHistory([]);
     setIsDemoRunning(true);
     setIsAutoRunning(true);
   }
@@ -190,6 +212,12 @@ export default function App() {
     setIsAutoRunning(false);
     setIsDemoRunning(false);
     setQueuedEventIds([]);
+  }
+
+  function handleJumpToDemoStep(eventId: string) {
+    setIsAutoRunning(false);
+    setIsDemoRunning(false);
+    void handleExplain(eventId);
   }
 
   const selectedEvent = events.find((event) => event.id === selectedEventId);
@@ -250,6 +278,8 @@ export default function App() {
               currentScore={liveScore}
               isAutoRunning={isAutoRunning}
               demoScript={demoScript}
+              activeEventId={selectedEventId}
+              onJumpToStep={handleJumpToDemoStep}
             />
             <button className="primary-button" onClick={() => void handleExplain(selectedEventId)}>
               Generate Insight
@@ -288,6 +318,7 @@ export default function App() {
             <StateNotice title="No Events" message="No seeded events are available for the active match yet." />
           ) : null}
           <ReplaySpotlight event={selectedEvent} />
+          <InsightHistory history={insightHistory} onSelect={(eventId) => void handleExplain(eventId)} />
           <EventTimeline
             events={events}
             selectedEventId={selectedEventId}
