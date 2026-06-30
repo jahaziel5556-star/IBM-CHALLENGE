@@ -160,6 +160,19 @@
     "confidence": "medium"
   },
   {
+    "id": "evt-goal-81",
+    "match_id": "match-world-final-001",
+    "minute": 81,
+    "type": "goal",
+    "title": "Crimson United Equalize",
+    "team": "Crimson United",
+    "opponent": "Blue City",
+    "summary": "Crimson United's wide overload created a late cutback and a first-time equalizer.",
+    "analysis": "The equalizer rewarded the earlier shape and substitution changes that kept isolating the weak-side defender.",
+    "child_summary": "Crimson United used the side spaces well and scored from a simple pass back.",
+    "confidence": "high"
+  },
+  {
     "id": "evt-red-86",
     "match_id": "match-world-final-001",
     "minute": 86,

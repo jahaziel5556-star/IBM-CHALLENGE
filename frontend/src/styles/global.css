@@ -161,6 +161,39 @@ input {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.demo-guide {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.demo-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.demo-label {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.demo-guide p {
+  margin: 0;
+}
+
+.demo-status {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--muted);
+}
+
 .broadcast-control-row {
   display: flex;
   align-items: center;

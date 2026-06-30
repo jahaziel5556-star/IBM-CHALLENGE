@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { apiGet, apiPost } from "./api/client";
 import { BroadcastControls } from "./components/BroadcastControls";
+import { DemoGuide } from "./components/DemoGuide";
 import { EventTimeline } from "./components/EventTimeline";
 import { HeaderBar } from "./components/HeaderBar";
 import { InsightOverlay } from "./components/InsightOverlay";
@@ -139,6 +140,21 @@ export default function App() {
   }
 
   const selectedEvent = events.find((event) => event.id === selectedEventId);
+  const liveMinute = selectedEvent?.minute ?? lastExplainedMinute ?? 1;
+  const liveScore = events
+    .filter((event) => event.type === "goal" && event.minute <= liveMinute)
+    .reduce(
+      (score, event) => {
+        if (event.team === matches[0]?.home_team) {
+          return { ...score, home: score.home + 1 };
+        }
+        if (event.team === matches[0]?.away_team) {
+          return { ...score, away: score.away + 1 };
+        }
+        return score;
+      },
+      { home: 0, away: 0 },
+    );
 
   return (
     <div
@@ -174,6 +190,7 @@ export default function App() {
               onStart={handleStartAutoRun}
               onStop={handleStopAutoRun}
             />
+            <DemoGuide currentMinute={liveMinute} currentScore={liveScore} isAutoRunning={isAutoRunning} />
             <button className="primary-button" onClick={() => void handleExplain(selectedEventId)}>
               Generate Insight
             </button>
@@ -186,6 +203,8 @@ export default function App() {
             activeEvent={selectedEvent}
             queueLength={queuedEventIds.length}
             isAutoRunning={isAutoRunning}
+            liveMinute={liveMinute}
+            liveScore={liveScore}
           />
           <InsightOverlay insight={activeInsight} />
         </section>

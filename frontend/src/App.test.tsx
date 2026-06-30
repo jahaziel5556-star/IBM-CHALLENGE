@@ -101,6 +101,25 @@ vi.stubGlobal(
                   silence_summary: "Stay silent when contact is too uncertain to ground confidently.",
               },
             },
+            {
+              id: "evt-goal-81",
+              minute: 81,
+              title: "Crimson United Equalize",
+              summary: "Crimson United's wide overload created a late cutback and a first-time equalizer.",
+              team: "Crimson United",
+              opponent: "Blue City",
+              match_id: "match-world-final-001",
+              type: "goal",
+              rule: {
+                event_type: "goal",
+                prompt_template: "momentum_analysis",
+                overlay_seconds: 6,
+                priority: 90,
+                retrieval_sources: ["match_context", "tactical_knowledge"],
+                trigger_summary: "Explain goals only when buildup or controversy adds real understanding.",
+                silence_summary: "Stay silent for routine finishes that viewers already understand.",
+              },
+            },
           ]),
         ),
       );
@@ -243,5 +262,6 @@ describe("App", () => {
     expect(await screen.findByText(/Explain the match/i)).toBeInTheDocument();
     expect(screen.getByText(/Live Event Engine/i)).toBeInTheDocument();
     expect(screen.getByText(/Broadcast Simulation/i)).toBeInTheDocument();
+    expect(screen.getByText(/Judge Demo Flow/i)).toBeInTheDocument();
   });
 });

@@ -5,19 +5,24 @@ type MatchStageProps = {
   activeEvent?: MatchEvent;
   queueLength: number;
   isAutoRunning: boolean;
+  liveMinute: number;
+  liveScore: {
+    home: number;
+    away: number;
+  };
 };
 
-export function MatchStage({ match, activeEvent, queueLength, isAutoRunning }: MatchStageProps) {
+export function MatchStage({ match, activeEvent, queueLength, isAutoRunning, liveMinute, liveScore }: MatchStageProps) {
   return (
     <div className="match-stage">
       <div className="score-bug">
         <div>
           <span>{match?.home_team ?? "Blue City"}</span>
-          <strong>{match?.score.home ?? 1}</strong>
+          <strong>{liveScore.home}</strong>
         </div>
         <div>
           <span>{match?.away_team ?? "Crimson United"}</span>
-          <strong>{match?.score.away ?? 1}</strong>
+          <strong>{liveScore.away}</strong>
         </div>
       </div>
 
@@ -45,7 +50,7 @@ export function MatchStage({ match, activeEvent, queueLength, isAutoRunning }: M
 
       <div className="commentary-strip">
         <span>Live</span>
-        <p>World Championship Final | Atlas Stadium | {activeEvent ? `Minute ${activeEvent.minute}` : "Match Center"}</p>
+        <p>World Championship Final | Atlas Stadium | Minute {liveMinute}</p>
       </div>
     </div>
   );
