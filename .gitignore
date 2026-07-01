@@ -30,6 +30,8 @@ Thumbs.db
 htmlcov/
 backend/.coverage
 frontend/.eslintcache
+.runtime/
+backend/uploads/
 
 # Database
 *.db

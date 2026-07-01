@@ -30,6 +30,24 @@ Returns the curated judge/demo sequence used by demo mode.
 
 Returns demo-readiness metadata including seeded match counts, event counts, rule counts, supported profiles, supported event types, IBM mode, and database backend.
 
+### `GET /api/videos`
+
+Returns uploaded MP4 assets available to the local broadcast overlay studio.
+
+### `POST /api/videos/upload`
+
+Accepts multipart form data with a required `video` `.mp4` file and an optional `events` `.json` timeline file.
+
+The optional timeline may be either a JSON array or an object with an `events` array. Each event should include `timestamp_seconds`, `type`, `title`, `team`, `opponent`, `summary`, `analysis`, `child_summary`, `confidence`, and optional `law_reference`.
+
+### `POST /api/videos/{video_id}/analyze`
+
+Creates a timed event timeline for the uploaded video. If a sidecar JSON timeline was uploaded, the API returns it. If no timeline exists, the current prototype creates a demo-calibrated event sequence so the overlay engine can be demonstrated on real footage.
+
+### `GET /api/videos/{video_id}/events`
+
+Returns the timed event timeline for an uploaded MP4. These events can be sent to `POST /api/explain` using their `event_id`.
+
 ### `POST /api/explain`
 
 Request:

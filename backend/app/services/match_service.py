@@ -4,6 +4,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.repositories.match_repository import MatchRepository
+from app.services.video_service import VideoService
 
 
 class MatchService:
@@ -31,7 +32,7 @@ class MatchService:
     def get_event(self, event_id: str) -> dict | None:
         event = self.repository.get_event(event_id)
         if not event:
-            return None
+            return VideoService().find_event(event_id)
         return self._serialize_event(event)
 
     def get_demo_script(self) -> list[dict]:

@@ -1,17 +1,62 @@
 # MatchMind One Event Engine Specification
 
+Version: 1.1
+
+Status: Engineering Specification
+
 ## Purpose
 
-This document is the rulebook for when MatchMind One should speak, what it should say, who it should speak to, and how long the overlay should remain visible.
+The Event Engine determines if, when, and how MatchMind One should request an AI insight. It sits between the match feed, uploaded video timeline, or future live data provider and the IBM Granite reasoning layer.
 
-## Global Principles
+The Event Engine does not generate explanations. It decides whether an explanation would improve viewer understanding. If no value is added, no overlay should appear.
 
-- Stay silent for routine events with low explanatory value
-- Prefer post-replay timing for officiating decisions
-- Never fabricate laws, certainty, or hidden evidence
-- Keep `child` explanations friendly and concrete
-- Keep `analyst` explanations tactically richer and more precise
-- Use lower-right placement by default unless accessibility settings override it
+## Philosophy
+
+Football is the primary experience. AI exists only to improve understanding, and good AI knows when to stay quiet.
+
+## Responsibilities
+
+- Detect or receive significant football events
+- Classify events against the supported event catalog
+- Evaluate viewer benefit by profile
+- Determine priority, confidence, and timing
+- Delay insights when live action would be interrupted
+- Queue simultaneous events
+- Trigger IBM Granite only when required
+- Validate that the final overlay is concise, grounded, and broadcast-safe
+
+## Event Lifecycle
+
+1. Match event is detected from seeded data, uploaded timeline JSON, or future live feed
+2. Event is classified into the event catalog
+3. Priority is evaluated
+4. Viewer profile is evaluated
+5. Trusted knowledge is retrieved
+6. IBM Granite receives the prompt only if an insight is warranted
+7. Response is validated
+8. Overlay payload is generated
+9. Overlay dismisses automatically
+
+## Priority Levels
+
+- `low`: routine events such as throw-ins, goal kicks, simple passes, routine corners, and routine free kicks. No overlay.
+- `medium`: situational events such as normal substitutions, formation adjustments, possession shifts, and counterattacks. Explain mainly for beginner-oriented profiles.
+- `high`: confusing events such as VAR reviews, penalty decisions, red cards, offside goals, major tactical changes, and momentum swings. Explain for most profiles.
+- `critical`: match-defining events such as disallowed goals, penalty shootout moments, match-winning goals, last-minute VAR, and serious injury stoppages. Explain for every profile once grounded.
+
+## Broadcast Timing
+
+Never display an insight immediately after kickoff, during active attacking play, while the ball is inside the penalty area, while another overlay is visible, or while the event is still too uncertain to ground.
+
+Prefer timing immediately after replay, during stoppages, after commentator emphasis, during VAR review, during substitutions, and during injury stoppages.
+
+## Overlay Duration
+
+- `low`: no overlay
+- `medium`: 5 seconds
+- `high`: 6 seconds
+- `critical`: 8 seconds
+- `maximum`: 10 seconds
 
 ## Prompt Templates
 
@@ -30,84 +75,111 @@ This document is the rulebook for when MatchMind One should speak, what it shoul
 - `match_context`
 - `profile_context`
 
-## Event Rules
+## Event Catalog
 
 ### Goal
 
-- Trigger insight when the goal follows a notable tactical pattern, controversial buildup, or immediate question viewers are likely to ask
+- Trigger when goal is confirmed and the buildup, controversy, own goal context, milestone, or tactical pattern adds understanding
 - Stay silent for routine finishes with obvious context
-- Profiles:
-  - `new_fan`, `casual_viewer`, `child`: explain why the attack worked
-  - `analyst`: explain buildup pattern, space creation, and defensive failure
-  - `accessibility`: simplified wording with stable pacing
 - Prompt template: `momentum_analysis`
 - Retrieval: `match_context`, `tactical_knowledge`
-- Overlay: 6 seconds
+- Default overlay: 6 seconds
+
+### Goal Disallowed
+
+- Trigger once the official reason is clear
+- Always explain because this is one of football's most confusing moments
+- Include reason, law reference when available, confidence, and simple wording
+- Prompt template: `law_interpretation`
+- Retrieval: `fifa_laws`, `referee_guidance`, `match_context`
+- Default overlay: 8 seconds
 
 ### VAR Review
 
-- Trigger after replay or official review announcement
+- Trigger after replay or official review context is visible
+- Explain what officials are reviewing, but do not predict the final decision
 - Stay silent while the referee is still actively reviewing unless the UI is marking a pending review state
-- Profiles receive increasing depth from simple review explanation to law-based interpretation
 - Prompt template: `law_interpretation`
 - Retrieval: `fifa_laws`, `referee_guidance`, `match_context`
-- Overlay: 8 seconds
+- Default overlay: 8 seconds
 
 ### Offside
 
-- Trigger on disallowed goal, close attacking move, or viewer-confusing stoppage
+- Trigger on disallowed goal, marginal offside, delayed flag, VAR offside, or viewer-confusing stoppage
 - Stay silent for clearly routine offsides far from goal
 - Prompt template: `law_interpretation`
 - Retrieval: `fifa_laws`, `match_context`
-- Overlay: 7 seconds
+- Default overlay: 7 seconds
 
 ### Penalty
 
 - Trigger after the decision or decisive replay
+- Include contact, handball context when relevant, law, and confidence
 - Stay silent if the incident is too uncertain and no trustworthy grounding exists
 - Prompt template: `officiating_decision`
 - Retrieval: `fifa_laws`, `referee_guidance`, `match_context`
-- Overlay: 7 seconds
+- Default overlay: 7 seconds
+
+### No Penalty
+
+- Trigger after a clear appeal or collision where viewers may expect a penalty
+- Explain why play continued without treating every collision as a foul
+- Stay silent for routine, speculative, or unsupported incidents
+- Prompt template: `officiating_decision`
+- Retrieval: `fifa_laws`, `referee_guidance`, `match_context`
+- Default overlay: 6 seconds
 
 ### Red Card
 
 - Trigger after dismissal or decisive replay
+- Include reason, applicable law, severity, and match impact
 - Stay silent during uncertainty before the card is shown
 - Prompt template: `officiating_decision`
 - Retrieval: `fifa_laws`, `referee_guidance`, `match_context`
-- Overlay: 8 seconds
+- Default overlay: 8 seconds
 
 ### Yellow Card
 
-- Trigger for tactical fouls, persistent infringement, or confusing cautions
+- Trigger for tactical fouls, persistent infringement, dissent, or confusing cautions
 - Stay silent for routine cautions with obvious context
 - Prompt template: `officiating_decision`
 - Retrieval: `fifa_laws`, `match_context`
-- Overlay: 6 seconds
+- Default overlay: 6 seconds
+
+### Substitution
+
+- Trigger when the change is tactical, protective, or momentum-related
+- Stay silent for routine time-management changes unless they affect shape or pressure
+- Prompt template: `substitution_impact`
+- Retrieval: `match_context`, `tactical_knowledge`, `profile_context`
+- Default overlay: 6 seconds
 
 ### Tactical Formation Change
 
-- Trigger when a formation switch materially changes pressure, width, or control
+- Trigger when formation, pressing intensity, defensive shape, width, or control materially changes
+- Explain what changed, why it matters, and likely impact
 - Stay silent if the shape change is subtle and not affecting play
 - Prompt template: `tactical_shift`
 - Retrieval: `tactical_knowledge`, `match_context`
-- Overlay: 7 seconds
+- Default overlay: 7 seconds
 
 ### Momentum Shift
 
-- Trigger when possession pressure, field tilt, or chance quality clearly changes
+- Trigger when possession pressure, field tilt, chance quality, or duel control clearly changes
+- Never simply state that momentum changed; explain what caused it
 - Stay silent for short-lived swings without sustained effect
 - Prompt template: `momentum_analysis`
 - Retrieval: `match_context`, `tactical_knowledge`
-- Overlay: 6 seconds
+- Default overlay: 6 seconds
 
 ### High Press Detected
 
 - Trigger when repeated coordinated pressing traps force rushed buildup
-- Stay silent for isolated presses
+- Prioritize `new_fan`, `casual_viewer`, and `child` profiles
+- Stay silent for isolated pressure moments
 - Prompt template: `tactical_shift`
 - Retrieval: `tactical_knowledge`, `match_context`
-- Overlay: 6 seconds
+- Default overlay: 6 seconds
 
 ### Defensive Block Change
 
@@ -115,15 +187,24 @@ This document is the rulebook for when MatchMind One should speak, what it shoul
 - Stay silent if the block remains functionally unchanged
 - Prompt template: `tactical_shift`
 - Retrieval: `tactical_knowledge`, `match_context`
-- Overlay: 6 seconds
+- Default overlay: 6 seconds
+
+### Low Block
+
+- Trigger when a low defensive strategy clearly changes space, tempo, or attacking options
+- Explain the defensive reason and expected outcome
+- Stay silent when retreating is routine and has no clear structural effect
+- Prompt template: `tactical_shift`
+- Retrieval: `tactical_knowledge`, `match_context`
+- Default overlay: 6 seconds
 
 ### Counterattack
 
-- Trigger when a transition clearly exploits imbalance or creates a dangerous attack
+- Trigger when a transition exploits imbalance or creates a dangerous attack
 - Stay silent for harmless direct breaks
 - Prompt template: `momentum_analysis`
 - Retrieval: `match_context`, `tactical_knowledge`
-- Overlay: 5 seconds
+- Default overlay: 5 seconds
 
 ### Dangerous Attack
 
@@ -131,35 +212,53 @@ This document is the rulebook for when MatchMind One should speak, what it shoul
 - Stay silent for standard entries with no notable tactical cause
 - Prompt template: `momentum_analysis`
 - Retrieval: `match_context`, `tactical_knowledge`
-- Overlay: 5 seconds
+- Default overlay: 5 seconds
 
 ### Injury
 
-- Trigger when the stoppage meaningfully affects player availability or tempo
-- Stay silent for very brief treatment with no strategic impact
+- Trigger when stoppage affects tempo, shape, procedure, or player availability
+- Never speculate about player health
+- Stay silent for brief treatment with no strategic or procedural impact
 - Prompt template: `player_welfare`
 - Retrieval: `match_context`
-- Overlay: 5 seconds
+- Default overlay: 5 seconds
 
-### Substitution
+## Viewer Profile Adaptation
 
-- Trigger when the change is tactical, protective, or momentum-related
-- Stay silent for routine late-game time management unless it changes shape or pressure
-- Prompt template: `substitution_impact`
-- Retrieval: `match_context`, `tactical_knowledge`, `profile_context`
-- Overlay: 6 seconds
+- `new_fan`: very simple vocabulary, short sentences, no jargon
+- `casual_viewer`: moderate detail, simple football terms, minimal tactics
+- `analyst`: technical language, formation names, pressing triggers, defensive shape, and statistical reasoning
+- `child`: friendly language, simple examples, positive tone
+- `accessibility`: simplified reading level, stable pacing, larger text, high contrast, reduced motion, and future voice narration
 
-## Confidence Rules
+## Output Contract
 
-- `high`: rule and match context strongly align
-- `medium`: likely explanation with some ambiguity
-- `low`: insight may help but must explicitly acknowledge uncertainty
+Every explanation returns headline, explanation, evidence, confidence, applicable law when grounded, overlay duration, prompt template, retrieval sources, and silence rule.
 
-## Silence Rules
+Maximum explanation length is two sentences and approximately 60 words.
 
-The engine must stay silent when:
+## Quality Rules
 
-- the event is routine and self-explanatory
-- no trusted grounding is available
-- the insight would overlap the most intense live action
-- an explanation would repeat recent content without adding value
+- Be truthful
+- Be explainable
+- Be concise
+- Be relevant
+- Be grounded
+- Stay human-centered
+- Never fabricate Laws of the Game
+- Never exaggerate certainty
+- Never interrupt important live play
+
+## Acceptance Criteria
+
+- AI only speaks when valuable
+- Overlays never distract from the main broadcast
+- Explanations improve understanding
+- Viewer profiles produce different outputs
+- Broadcast remains the primary experience
+- Every explanation is traceable to rules and evidence
+- Confidence is displayed when appropriate
+
+## Future Expansion
+
+The engine should remain sport-adaptable so basketball, rugby, cricket, Formula 1, tennis, and Olympic event catalogs can reuse the same explainable AI architecture with sport-specific rules.

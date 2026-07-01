@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
@@ -6,9 +6,11 @@ from app.schemas.demo import DemoScriptStep
 from app.schemas.profile import ProfileRequest, ProfileResponse, SettingsResponse
 from app.schemas.explain import ExplainRequest, ExplainResponse
 from app.schemas.system import SystemSummary
+from app.schemas.video import VideoAnalysisRequest, VideoAnalysisResponse, VideoAsset
 from app.services.explanation_service import ExplanationService
 from app.services.match_service import MatchService
 from app.services.profile_service import ProfileService
+from app.services.video_service import VideoService
 
 router = APIRouter()
 
@@ -98,6 +100,46 @@ def get_system_summary() -> SystemSummary:
         )
     finally:
         session.close()
+
+
+@router.get("/api/videos", response_model=list[VideoAsset])
+def list_videos() -> list[dict]:
+    return VideoService().list_videos()
+
+
+@router.post("/api/videos/upload", response_model=VideoAsset)
+async def upload_video(
+    video: UploadFile = File(...),
+    events: UploadFile | None = File(default=None),
+) -> dict:
+    try:
+        event_payload = await events.read() if events else None
+        return VideoService().create_video(video=video, event_payload=event_payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/api/videos/{video_id}", response_model=VideoAsset)
+def get_video(video_id: str) -> dict:
+    video = VideoService().get_video(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return video
+
+
+@router.post("/api/videos/{video_id}/analyze", response_model=VideoAnalysisResponse)
+def analyze_video(video_id: str, request: VideoAnalysisRequest) -> dict:
+    try:
+        return VideoService().analyze_video(video_id, duration_seconds=request.duration_seconds)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/api/videos/{video_id}/events")
+def list_video_events(video_id: str) -> list[dict]:
+    if not VideoService().get_video(video_id):
+        raise HTTPException(status_code=404, detail="Video not found")
+    return VideoService().list_events(video_id)
 
 
 @router.post("/api/explain", response_model=ExplainResponse)

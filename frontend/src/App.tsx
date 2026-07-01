@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { apiGet, apiPost } from "./api/client";
+import { apiAssetUrl, apiGet, apiPost, apiUpload } from "./api/client";
 import { BroadcastControls } from "./components/BroadcastControls";
 import { DemoGuide } from "./components/DemoGuide";
 import { EventTimeline } from "./components/EventTimeline";
@@ -13,6 +13,7 @@ import { ReplaySpotlight } from "./components/ReplaySpotlight";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { StateNotice } from "./components/StateNotice";
 import { SystemReadiness } from "./components/SystemReadiness";
+import { VideoIngestPanel } from "./components/VideoIngestPanel";
 import type {
   DemoScriptStep,
   ExplainResponse,
@@ -22,6 +23,8 @@ import type {
   ProfileId,
   ProfileSettings,
   SystemSummary,
+  VideoAnalysisResponse,
+  VideoAsset,
 } from "./types/domain";
 
 const profiles: ProfileId[] = ["new_fan", "casual_viewer", "analyst", "child", "accessibility"];
@@ -42,9 +45,12 @@ export default function App() {
   const [queuedEventIds, setQueuedEventIds] = useState<string[]>([]);
   const [isAutoRunning, setIsAutoRunning] = useState(false);
   const [processedEventIds, setProcessedEventIds] = useState<string[]>([]);
+  const [videoTriggeredEventIds, setVideoTriggeredEventIds] = useState<string[]>([]);
   const [lastExplainedMinute, setLastExplainedMinute] = useState<number | null>(null);
   const [isDemoRunning, setIsDemoRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [isAnalyzingVideo, setIsAnalyzingVideo] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [health, setHealth] = useState<HealthResponse>({
     status: "unknown",
@@ -54,6 +60,8 @@ export default function App() {
   });
   const [demoScript, setDemoScript] = useState<DemoScriptStep[]>([]);
   const [systemSummary, setSystemSummary] = useState<SystemSummary | null>(null);
+  const [videos, setVideos] = useState<VideoAsset[]>([]);
+  const [activeVideo, setActiveVideo] = useState<VideoAsset | null>(null);
   const [insightHistory, setInsightHistory] = useState<
     Array<{
       eventId: string;
@@ -68,12 +76,13 @@ export default function App() {
     async function loadApp() {
       try {
         setIsLoading(true);
-        const [healthResponse, loadedMatches, loadedProfile, loadedDemoScript, loadedSystemSummary] = await Promise.all([
+        const [healthResponse, loadedMatches, loadedProfile, loadedDemoScript, loadedSystemSummary, loadedVideos] = await Promise.all([
           apiGet<HealthResponse>("/health"),
           apiGet<MatchSummary[]>("/api/matches"),
           apiGet<ProfileSettings>("/api/profile"),
           apiGet<DemoScriptStep[]>("/api/demo-script"),
           apiGet<SystemSummary>("/api/system/summary"),
+          apiGet<VideoAsset[]>("/api/videos"),
         ]);
         setHealth(healthResponse);
         setMatches(loadedMatches);
@@ -81,9 +90,18 @@ export default function App() {
         setProfileSettings(loadedProfile);
         setDemoScript(loadedDemoScript);
         setSystemSummary(loadedSystemSummary);
+        setVideos(loadedVideos);
 
-        const primaryMatch = loadedMatches[0];
-        if (primaryMatch) {
+        const latestVideo = loadedVideos[0];
+        if (latestVideo) {
+          setActiveVideo(latestVideo);
+          if (latestVideo.event_count > 0) {
+            const uploadedEvents = await apiGet<MatchEvent[]>(`/api/videos/${latestVideo.id}/events`);
+            setEvents(uploadedEvents);
+            setSelectedEventId(uploadedEvents[0]?.id ?? "");
+          }
+        } else if (loadedMatches[0]) {
+          const primaryMatch = loadedMatches[0];
           const loadedEvents = await apiGet<MatchEvent[]>(`/api/matches/${primaryMatch.id}/events`);
           setEvents(loadedEvents);
         }
@@ -153,7 +171,10 @@ export default function App() {
     };
   }, [isAutoRunning, events, isDemoRunning, lastExplainedMinute, processedEventIds, profileSettings.reduced_motion, demoScript]);
 
-  async function handleExplain(eventId: string, options?: { fromAutoRun?: boolean; requestProfile?: ProfileId }) {
+  async function handleExplain(eventId: string, options?: { fromAutoRun?: boolean; fromVideoRun?: boolean; requestProfile?: ProfileId }) {
+    if (!eventId) {
+      return;
+    }
     setSelectedEventId(eventId);
     try {
       const activeProfile = options?.requestProfile ?? profile;
@@ -173,7 +194,7 @@ export default function App() {
           ...current.filter((entry) => !(entry.eventId === eventId && entry.profile === activeProfile)),
         ]);
       }
-      if (options?.fromAutoRun) {
+      if (options?.fromAutoRun || options?.fromVideoRun) {
         setProcessedEventIds((current) => [...new Set([...current, eventId])]);
       }
       setActiveInsight(insight);
@@ -204,6 +225,7 @@ export default function App() {
   function handleStartAutoRun() {
     setQueuedEventIds([]);
     setProcessedEventIds([]);
+    setVideoTriggeredEventIds([]);
     setLastExplainedMinute(null);
     setInsightHistory([]);
     setIsDemoRunning(false);
@@ -213,6 +235,7 @@ export default function App() {
   function handleStartDemo() {
     setQueuedEventIds([]);
     setProcessedEventIds([]);
+    setVideoTriggeredEventIds([]);
     setLastExplainedMinute(null);
     setInsightHistory([]);
     setIsDemoRunning(true);
@@ -229,6 +252,88 @@ export default function App() {
     setIsAutoRunning(false);
     setIsDemoRunning(false);
     void handleExplain(eventId);
+  }
+
+  async function handleVideoUpload(videoFile: File, eventsFile?: File) {
+    const formData = new FormData();
+    formData.append("video", videoFile);
+    if (eventsFile) {
+      formData.append("events", eventsFile);
+    }
+
+    try {
+      setIsUploadingVideo(true);
+      setErrorMessage("");
+      const uploadedVideo = await apiUpload<VideoAsset>("/api/videos/upload", formData);
+      setVideos((current) => [uploadedVideo, ...current.filter((video) => video.id !== uploadedVideo.id)]);
+      setActiveVideo(uploadedVideo);
+      setActiveInsight(null);
+      setInsightHistory([]);
+      setProcessedEventIds([]);
+      setVideoTriggeredEventIds([]);
+      if (uploadedVideo.event_count > 0) {
+        await loadVideoEvents(uploadedVideo);
+      } else {
+        setEvents([]);
+        setSelectedEventId("");
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Video upload failed.");
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  }
+
+  async function loadVideoEvents(video: VideoAsset) {
+    const uploadedEvents = await apiGet<MatchEvent[]>(`/api/videos/${video.id}/events`);
+    setEvents(uploadedEvents);
+    setSelectedEventId(uploadedEvents[0]?.id ?? "");
+    setLastExplainedMinute(uploadedEvents[0]?.minute ?? null);
+  }
+
+  async function handleAnalyzeVideo(duration: number) {
+    if (!activeVideo || activeVideo.event_count > 0 || isAnalyzingVideo) {
+      return;
+    }
+
+    try {
+      setIsAnalyzingVideo(true);
+      const analysis = await apiPost<VideoAnalysisResponse>(`/api/videos/${activeVideo.id}/analyze`, {
+        duration_seconds: Number.isFinite(duration) ? duration : undefined,
+      });
+      setActiveVideo(analysis.video);
+      setVideos((current) => [analysis.video, ...current.filter((video) => video.id !== analysis.video.id)]);
+      setEvents(analysis.events);
+      setSelectedEventId(analysis.events[0]?.id ?? "");
+      setProcessedEventIds([]);
+      setVideoTriggeredEventIds([]);
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Video analysis failed.");
+    } finally {
+      setIsAnalyzingVideo(false);
+    }
+  }
+
+  function handleVideoTimeUpdate(currentTime: number) {
+    if (!activeVideo || activeInsight || events.length === 0) {
+      return;
+    }
+
+    const dueEvent = events
+      .filter((event) => event.video_id === activeVideo.id)
+      .filter((event) => typeof event.timestamp_seconds === "number")
+      .filter((event) => Number(event.timestamp_seconds) <= currentTime + 0.4)
+      .filter((event) => !videoTriggeredEventIds.includes(event.id))
+      .filter((event) => !event.silent_recommended)
+      .sort((left, right) => Number(left.timestamp_seconds) - Number(right.timestamp_seconds))[0];
+
+    if (!dueEvent) {
+      return;
+    }
+
+    setVideoTriggeredEventIds((current) => [...new Set([...current, dueEvent.id])]);
+    void handleExplain(dueEvent.id, { fromVideoRun: true });
   }
 
   const selectedEvent = events.find((event) => event.id === selectedEventId);
@@ -280,6 +385,12 @@ export default function App() {
           <div className="controls-panel">
             <ProfileSwitcher profiles={profiles} activeProfile={profile} onChange={handleProfileChange} />
             <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
+            <VideoIngestPanel
+              activeVideo={activeVideo}
+              isUploading={isUploadingVideo}
+              isAnalyzing={isAnalyzingVideo}
+              onUpload={handleVideoUpload}
+            />
             <BroadcastControls
               isAutoRunning={isAutoRunning}
               isDemoRunning={isDemoRunning}
@@ -297,7 +408,7 @@ export default function App() {
               activeEventId={selectedEventId}
               onJumpToStep={handleJumpToDemoStep}
             />
-            <button className="primary-button" onClick={() => void handleExplain(selectedEventId)}>
+            <button className="primary-button" onClick={() => void handleExplain(selectedEventId)} disabled={!selectedEventId}>
               Generate Insight
             </button>
           </div>
@@ -320,6 +431,12 @@ export default function App() {
             isAutoRunning={isAutoRunning}
             liveMinute={liveMinute}
             liveScore={liveScore}
+            videoUrl={activeVideo ? apiAssetUrl(activeVideo.video_url) : undefined}
+            videoTitle={activeVideo?.filename}
+            videoEventCount={activeVideo?.event_count}
+            timelineSource={activeVideo?.timeline_source}
+            onVideoLoadedMetadata={handleAnalyzeVideo}
+            onVideoTimeUpdate={handleVideoTimeUpdate}
           />
           <InsightOverlay insight={activeInsight} />
         </section>

@@ -166,6 +166,78 @@ input {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.video-ingest {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.video-ingest h2 {
+  margin: 6px 0 0;
+  font-size: 1.05rem;
+}
+
+.file-drop {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(45, 212, 191, 0.08);
+  border: 1px dashed rgba(45, 212, 191, 0.42);
+  cursor: pointer;
+}
+
+.file-drop-secondary {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.36);
+}
+
+.file-drop input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.file-drop span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(3, 12, 21, 0.72);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.file-drop strong {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(3, 12, 21, 0.54);
+  color: var(--muted);
+}
+
+.video-status span {
+  text-transform: capitalize;
+}
+
 .demo-guide {
   display: grid;
   gap: 14px;
@@ -391,6 +463,32 @@ input {
   overflow: hidden;
 }
 
+.match-stage-video {
+  background: #02070d;
+}
+
+.video-stage {
+  position: absolute;
+  inset: 0;
+  background: #02070d;
+}
+
+.match-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #02070d;
+}
+
+.video-vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(2, 7, 13, 0.7), transparent 22%),
+    linear-gradient(0deg, rgba(2, 7, 13, 0.82), transparent 34%);
+}
+
 .pitch {
   position: absolute;
   inset: 50px 20px 74px;
@@ -525,6 +623,12 @@ input {
   background: rgba(45, 212, 191, 0.14);
   border: 1px solid rgba(45, 212, 191, 0.36);
   box-shadow: 0 0 0 10px rgba(45, 212, 191, 0.08);
+}
+
+.event-pulse-video {
+  right: 24px;
+  top: 84px;
+  z-index: 2;
 }
 
 .commentary-strip {

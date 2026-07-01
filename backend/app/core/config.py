@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     database_auto_init: bool = Field(default=True, alias="DATABASE_AUTO_INIT")
     database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
     seed_demo_data: bool = Field(default=True, alias="SEED_DEMO_DATA")
+    upload_dir: str = Field(default="uploads", alias="UPLOAD_DIR")
     ibm_watsonx_api_key: str = Field(default="", alias="IBM_WATSONX_API_KEY")
     ibm_watsonx_project_id: str = Field(default="", alias="IBM_WATSONX_PROJECT_ID")
     ibm_watsonx_url: str = Field(default="https://us-south.ml.cloud.ibm.com", alias="IBM_WATSONX_URL")

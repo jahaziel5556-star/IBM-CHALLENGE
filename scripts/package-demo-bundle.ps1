@@ -8,6 +8,7 @@ $zipPath = Join-Path $artifactRoot "MatchMind-One-demo-bundle.zip"
 $filesToCopy = @(
     "README.md",
     ".env.example",
+    "assets\sample-video-events.json",
     "docs\00_PROJECT_OVERVIEW.md",
     "docs\01_PRODUCT_SPECIFICATION.md",
     "docs\03_TECH_STACK.md",

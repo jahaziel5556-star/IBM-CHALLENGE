@@ -42,6 +42,8 @@ export type SystemSummary = {
 export type MatchEvent = {
   id: string;
   match_id: string;
+  video_id?: string;
+  timestamp_seconds?: number;
   minute: number;
   type: string;
   title: string;
@@ -50,6 +52,7 @@ export type MatchEvent = {
   summary: string;
   confidence?: string;
   law_reference?: string;
+  silent_recommended?: boolean;
   rule: {
     event_type: string;
     prompt_template: string;
@@ -59,6 +62,21 @@ export type MatchEvent = {
     trigger_summary: string;
     silence_summary: string;
   };
+};
+
+export type VideoAsset = {
+  id: string;
+  filename: string;
+  video_url: string;
+  event_count: number;
+  analysis_status: string;
+  timeline_source: string;
+  created_at: string;
+};
+
+export type VideoAnalysisResponse = {
+  video: VideoAsset;
+  events: MatchEvent[];
 };
 
 export type ProfileSettings = {

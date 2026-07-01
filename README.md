@@ -122,6 +122,12 @@ That one command runs:
 
 This is the recommended submission route when Docker is unavailable on the workstation.
 
+## MP4 Overlay Demo
+
+Run the backend and frontend, open the app, and use the Video Overlay Studio to upload a `.mp4` clip. You can also upload [sample-video-events.json](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHALLENGE/assets/sample-video-events.json) as a sidecar timeline so overlays trigger at real timestamps.
+
+Uploaded clips stay local under `backend/uploads/` and are ignored by Git.
+
 ## GitHub CI
 
 The repository now includes [`.github/workflows/ci.yml`](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHALLENGE/.github/workflows/ci.yml) for:

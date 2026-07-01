@@ -9,6 +9,15 @@
     "silence_summary": "Stay silent for routine finishes that viewers already understand."
   },
   {
+    "event_type": "goal_disallowed",
+    "prompt_template": "law_interpretation",
+    "overlay_seconds": 8,
+    "priority": 100,
+    "retrieval_sources": ["fifa_laws", "referee_guidance", "match_context"],
+    "trigger_summary": "Always explain disallowed goals after the official reason is clear.",
+    "silence_summary": "Stay silent while the reason is unknown or still being reviewed."
+  },
+  {
     "event_type": "var_review",
     "prompt_template": "law_interpretation",
     "overlay_seconds": 8,
@@ -34,6 +43,15 @@
     "retrieval_sources": ["fifa_laws", "referee_guidance", "match_context"],
     "trigger_summary": "Explain after the decision or after the decisive replay shows contact.",
     "silence_summary": "Stay silent when contact is too uncertain to ground confidently."
+  },
+  {
+    "event_type": "no_penalty",
+    "prompt_template": "officiating_decision",
+    "overlay_seconds": 6,
+    "priority": 88,
+    "retrieval_sources": ["fifa_laws", "referee_guidance", "match_context"],
+    "trigger_summary": "Explain why play continued after a penalty appeal when the replay context is clear.",
+    "silence_summary": "Stay silent when the incident is routine, speculative, or unsupported by trustworthy evidence."
   },
   {
     "event_type": "red_card",
@@ -88,6 +106,15 @@
     "retrieval_sources": ["tactical_knowledge", "match_context"],
     "trigger_summary": "Explain when the block line or compactness clearly changes progression.",
     "silence_summary": "Stay silent if the defensive shape remains functionally similar."
+  },
+  {
+    "event_type": "low_block",
+    "prompt_template": "tactical_shift",
+    "overlay_seconds": 6,
+    "priority": 66,
+    "retrieval_sources": ["tactical_knowledge", "match_context"],
+    "trigger_summary": "Explain a low block when it clearly changes space, tempo, or attacking options.",
+    "silence_summary": "Stay silent when the defending team is simply retreating without a meaningful structural change."
   },
   {
     "event_type": "counterattack",

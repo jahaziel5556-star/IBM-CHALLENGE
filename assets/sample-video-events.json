@@ -1,0 +1,42 @@
+{
+  "events": [
+    {
+      "timestamp_seconds": 8,
+      "minute": 12,
+      "type": "high_press",
+      "title": "High Press Detected",
+      "team": "Blue City",
+      "opponent": "Crimson United",
+      "summary": "Blue City are pressing the first pass and forcing rushed clearances.",
+      "analysis": "The front line closes the center, waits for the fullback pass, and then jumps together to trap the buildup.",
+      "child_summary": "Blue City are chasing the ball together so the other team cannot pass calmly.",
+      "confidence": "high"
+    },
+    {
+      "timestamp_seconds": 21,
+      "minute": 24,
+      "type": "goal_disallowed",
+      "title": "Goal Disallowed For Offside",
+      "team": "Crimson United",
+      "opponent": "Blue City",
+      "summary": "The attacker was beyond the second-last defender when the pass was played.",
+      "analysis": "The finish is ruled out because the receiving attacker started too early against the defensive line.",
+      "child_summary": "The scorer ran a little too early before the pass.",
+      "confidence": "high",
+      "law_reference": "Law 11"
+    },
+    {
+      "timestamp_seconds": 38,
+      "minute": 62,
+      "type": "penalty",
+      "title": "Penalty Awarded",
+      "team": "Blue City",
+      "opponent": "Crimson United",
+      "summary": "The defender made contact before winning the ball and stopped the shot path.",
+      "analysis": "The recovery run arrives late and clips the attacker before clean ball contact is possible.",
+      "child_summary": "The defender hit the player first instead of getting the ball first.",
+      "confidence": "high",
+      "law_reference": "Law 12"
+    }
+  ]
+}

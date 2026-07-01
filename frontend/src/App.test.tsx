@@ -91,6 +91,10 @@ vi.stubGlobal(
       );
     }
 
+    if (url.endsWith("/api/videos")) {
+      return Promise.resolve(new Response(JSON.stringify([])));
+    }
+
     if (url.endsWith("/api/matches/match-world-final-001/events")) {
       return Promise.resolve(
         new Response(
@@ -313,6 +317,7 @@ describe("App", () => {
     expect(await screen.findByText(/Explain the match/i)).toBeInTheDocument();
     expect(screen.getByText(/Live Event Engine/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Start Auto-Run/i })).toBeInTheDocument();
+    expect(screen.getByText(/Video Overlay Studio/i)).toBeInTheDocument();
     expect(screen.getByText(/Judge Demo Flow/i)).toBeInTheDocument();
     expect(screen.getByText(/Service Ready/i)).toBeInTheDocument();
     expect(screen.getByText(/Insight History/i)).toBeInTheDocument();

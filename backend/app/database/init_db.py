@@ -68,10 +68,12 @@ def _seed_matches(session: Session) -> None:
 
 
 def _seed_rules(session: Session) -> None:
-    if session.scalar(select(Rule.event_type).limit(1)):
-        return
-
     for item in _load_json("event_rules.json"):
+        rule = session.get(Rule, item["event_type"])
+        if rule:
+            rule.prompt_template = item["prompt_template"]
+            rule.overlay_seconds = item["overlay_seconds"]
+            continue
         session.add(
             Rule(
                 event_type=item["event_type"],

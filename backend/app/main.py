@@ -2,10 +2,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
 from app.core.config import settings
 from app.database.init_db import initialize_database
+from app.services.video_service import VideoService
 
 
 @asynccontextmanager
@@ -31,6 +33,9 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(router)
+    upload_root = VideoService().upload_root
+    upload_root.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(upload_root)), name="uploads")
 
     return app
 
