@@ -47,3 +47,9 @@ The verifier now checks three things:
 - a strict watsonx text-chat generation succeeds without falling back to mock output
 
 If IBM returns `no_associated_service_instance_error`, open the watsonx project in IBM Cloud and associate it with a WML runtime/service instance before retrying.
+
+Shortcut:
+
+```powershell
+.\scripts\open-ibm-wml-association.ps1
+```

@@ -144,6 +144,12 @@ To diagnose the current IBM runtime state:
 py .\scripts\diagnose-ibm-wml-runtime.py
 ```
 
+To open the IBM project page where the WML service must be associated:
+
+```powershell
+.\scripts\open-ibm-wml-association.ps1
+```
+
 ## How The AI Decides To Speak
 
 MatchMind One uses a two-step AI flow. First, the Event Engine classifies the match moment, checks priority, confidence, timing, viewer profile, and silence rules, then decides whether an overlay is useful. Only after that does IBM Granite receive the grounded event context and write the short explanation.

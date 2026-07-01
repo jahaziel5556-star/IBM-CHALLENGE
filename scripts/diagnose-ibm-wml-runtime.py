@@ -55,6 +55,11 @@ def main() -> int:
     )
 
     runtime_instances = list_runtime_instances(token)
+    wml_instances = [
+        item
+        for item in runtime_instances
+        if item.get("crn_service") == "pm-20" or "machine" in str(item.get("name", "")).lower()
+    ]
     print(json.dumps({"runtime_instance_count": len(runtime_instances), "runtime_instances": runtime_instances}, indent=2))
 
     strict_inference = service.verify_text_chat()
@@ -72,6 +77,9 @@ def main() -> int:
                     "Associate the watsonx project with a Watson Machine Learning or watsonx.ai Runtime service "
                     "instance in the same IBM region, then rerun this diagnostic."
                 ),
+                "project_manage_url": f"https://dataplatform.cloud.ibm.com/projects/{settings.ibm_watsonx_project_id}/manage?context=wx",
+                "recommended_wml_instance": wml_instances[0] if wml_instances else None,
+                "launcher": r".\scripts\open-ibm-wml-association.ps1",
             },
             indent=2,
         )
