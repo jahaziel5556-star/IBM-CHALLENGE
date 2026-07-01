@@ -38,3 +38,6 @@ frontend/.eslintcache
 # Playwright
 playwright-report/
 test-results/
+
+# Generated artifacts
+artifacts/

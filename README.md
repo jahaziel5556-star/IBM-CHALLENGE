@@ -120,3 +120,13 @@ To enable the live watsonx CI job, add these GitHub repository secrets:
 - `IBM_WATSONX_URL`
 - `IBM_WATSONX_MODEL_ID`
 - `IBM_WATSONX_API_VERSION`
+
+## Demo Packaging
+
+To generate a judge-ready bundle from the current repo state:
+
+```powershell
+.\scripts\package-demo-bundle.ps1
+```
+
+This writes a zip archive under `artifacts/` with the key docs, run scripts, verification helpers, and a manifest linked to the current commit.
