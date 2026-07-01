@@ -34,6 +34,7 @@ Notes:
 - To switch the Compose stack to live watsonx, inject the IBM env vars securely instead of editing committed files.
 - On Windows with Docker Desktop, the Linux engine also depends on WSL being installed and available.
 - You can diagnose the local prerequisites with `.\scripts\verify-docker-prereqs.ps1`.
+- You can prepare the missing Windows prerequisites with `.\scripts\enable-docker-runtime-prereqs.ps1` from an elevated PowerShell session.
 
 ### GitHub Actions CI
 
@@ -68,6 +69,7 @@ The repository includes [ci.yml](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHAL
 - Run `cd frontend && npm run test:e2e`
 - Run `.\scripts\verify-watsonx-live.ps1` when live IBM credentials are configured
 - Run `.\scripts\verify-docker-prereqs.ps1` before attempting Docker Compose validation on Windows
+- If Docker prerequisites are missing on Windows, run `.\scripts\enable-docker-runtime-prereqs.ps1` as Administrator and reboot if prompted
 - Package a demo handoff with `.\scripts\package-demo-bundle.ps1`
 
 ## Demo Bundle Output

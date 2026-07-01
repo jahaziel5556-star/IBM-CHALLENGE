@@ -140,3 +140,11 @@ On this Windows workstation, the remaining deployment blocker is the Docker Desk
 ```
 
 This reports whether the Docker CLI is present, whether the Docker daemon is reachable, whether the Docker Desktop service is running, and whether WSL is installed.
+
+If the report shows missing WSL or a stopped Docker Desktop service, open an elevated PowerShell window and run:
+
+```powershell
+.\scripts\enable-docker-runtime-prereqs.ps1
+```
+
+Then reboot if Windows asks you to, start Docker Desktop, and rerun `.\scripts\verify-docker-prereqs.ps1`.
