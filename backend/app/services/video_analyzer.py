@@ -276,7 +276,7 @@ class VideoAnalyzer:
                 {
                     "id": f"{video_id}-granite-{index:03d}",
                     "timestamp_seconds": round(max(0.0, timestamp), 2),
-                    "minute": int(event.get("minute") or max(1, round(timestamp / 60))),
+                    "minute": self._coerce_minute(event.get("minute"), timestamp),
                     "type": str(event.get("type") or "dangerous_attack"),
                     "title": str(event.get("title") or "Granite Video Event"),
                     "team": str(event.get("team") or "Observed Team"),
@@ -290,6 +290,15 @@ class VideoAnalyzer:
                 }
             )
         return normalized_events
+
+    def _coerce_minute(self, raw_minute: object, timestamp_seconds: float) -> int:
+        if isinstance(raw_minute, int | float):
+            return max(1, int(raw_minute))
+        if isinstance(raw_minute, str):
+            digits = "".join(character for character in raw_minute if character.isdigit())
+            if digits:
+                return max(1, int(digits[:2]))
+        return max(1, round(timestamp_seconds / 60))
 
     def _classify_observation(self, observation: FrameObservation) -> str:
         if observation.scene_change > 0.55 and observation.closeup_score > 0.64:

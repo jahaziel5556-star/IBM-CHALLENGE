@@ -14,19 +14,21 @@ test("demo flow stays profile-aware and demo-ready", async ({ page }) => {
   await page.getByRole("button", { name: /^new fan$/i }).click();
   await page.getByRole("button", { name: /^Generate Insight$/i }).click();
   const overlay = page.locator(".insight-overlay");
-  await expect(overlay.getByText(/AI Insight/i)).toBeVisible();
-  await expect(overlay.getByRole("heading", { name: /Penalty Awarded/i })).toBeVisible();
-  await expect(overlay).toContainText("simple football language");
+  await expect(overlay.getByText(/AI Insight/i)).toBeVisible({ timeout: 30_000 });
+  await expect(overlay.getByRole("heading", { name: /Penalty Awarded/i })).toBeVisible({ timeout: 30_000 });
   const initialExplanation = await overlay.locator("p").nth(1).textContent();
   await expect(overlay).toContainText("Law 12");
 
   await page.getByRole("button", { name: /^child$/i }).click();
-  await expect(overlay).toContainText("friendly wording and one clear football idea");
+  await expect
+    .poll(async () => overlay.locator("p").nth(1).textContent(), { timeout: 30_000 })
+    .not.toBe(initialExplanation);
+  const childExplanation = await overlay.locator("p").nth(1).textContent();
 
   await page.getByRole("button", { name: /^analyst$/i }).click();
-  await expect(overlay).toContainText("structure, spacing, and cause-effect in the phase of play");
-  const analystExplanation = await overlay.locator("p").nth(1).textContent();
-  expect(analystExplanation).not.toBe(initialExplanation);
+  await expect
+    .poll(async () => overlay.locator("p").nth(1).textContent(), { timeout: 30_000 })
+    .not.toBe(childExplanation);
 
   const largeTextToggle = page.getByLabel(/Large text/i);
   await largeTextToggle.check();

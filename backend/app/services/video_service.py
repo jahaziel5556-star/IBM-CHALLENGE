@@ -121,7 +121,7 @@ class VideoService:
         event_type = self._normalize_event_type(str(item.get("type", item.get("event_type", "dangerous_attack"))))
         rule = self.rules.get(event_type, self.rules["dangerous_attack"])
         timestamp_seconds = self._coerce_timestamp(item, index)
-        minute = int(item.get("minute") or max(1, round(timestamp_seconds / 60)))
+        minute = self._coerce_minute(item.get("minute"), timestamp_seconds)
         title = str(item.get("title") or event_type.replace("_", " ").title())
         team = str(item.get("team") or "Attacking Team")
         opponent = str(item.get("opponent") or "Defending Team")
@@ -231,6 +231,15 @@ class VideoService:
         if raw_timestamp is None:
             return float(index * 12)
         return max(0.0, float(raw_timestamp))
+
+    def _coerce_minute(self, raw_minute: object, timestamp_seconds: float) -> int:
+        if isinstance(raw_minute, int | float):
+            return max(1, int(raw_minute))
+        if isinstance(raw_minute, str):
+            stripped = raw_minute.strip()
+            if stripped.isdigit():
+                return max(1, int(stripped))
+        return max(1, round(timestamp_seconds / 60))
 
     def _default_law_reference(self, event_type: str) -> str | None:
         if event_type in {"offside", "goal_disallowed"}:

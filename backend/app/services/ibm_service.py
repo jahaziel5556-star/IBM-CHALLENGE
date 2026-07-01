@@ -109,7 +109,7 @@ class GraniteService:
     def _parse_json_object(self, content: str) -> dict:
         try:
             parsed = json.loads(content)
-            return parsed if isinstance(parsed, dict) else {"events": []}
+            return parsed if isinstance(parsed, dict) else {}
         except json.JSONDecodeError:
             pass
 
@@ -117,7 +117,7 @@ class GraniteService:
         if fenced:
             try:
                 parsed = json.loads(fenced.group(1))
-                return parsed if isinstance(parsed, dict) else {"events": []}
+                return parsed if isinstance(parsed, dict) else {}
             except json.JSONDecodeError:
                 pass
 
@@ -126,10 +126,10 @@ class GraniteService:
         if start != -1 and end != -1 and end > start:
             try:
                 parsed = json.loads(content[start : end + 1])
-                return parsed if isinstance(parsed, dict) else {"events": []}
+                return parsed if isinstance(parsed, dict) else {}
             except json.JSONDecodeError:
-                return {"events": []}
-        return {"events": []}
+                return {}
+        return {}
 
     def _generate_watsonx(self, *, prompt_template: str, event: dict, guidance: dict, prompt_payload: dict) -> dict:
         token = self._get_iam_token()
@@ -156,9 +156,8 @@ class GraniteService:
         payload = response.json()
         content = payload["choices"][0]["message"]["content"]
 
-        try:
-            structured = json.loads(content)
-        except json.JSONDecodeError:
+        structured = self._parse_json_object(content)
+        if not structured:
             structured = {
                 "headline": guidance["headline"],
                 "explanation": content,
@@ -171,9 +170,9 @@ class GraniteService:
             "headline": structured.get("headline", guidance["headline"]),
             "explanation": structured.get("explanation", content),
             "confidence": structured.get("confidence", guidance["default_confidence"]),
-            "law_reference": structured.get("law_reference", event.get("law_reference")),
+            "law_reference": event.get("law_reference") or structured.get("law_reference"),
             "prompt_template": prompt_template,
-            "evidence": structured.get("evidence", guidance["evidence"]),
+            "evidence": self._normalize_evidence(structured.get("evidence", guidance["evidence"])),
         }
 
     def _generate_mock(self, *, prompt_template: str, event: dict, profile: str, guidance: dict) -> dict:
@@ -193,6 +192,13 @@ class GraniteService:
             "prompt_template": prompt_template,
             "evidence": guidance["evidence"],
         }
+
+    def _normalize_evidence(self, evidence: object) -> list[str]:
+        if isinstance(evidence, list):
+            return [str(item) for item in evidence if str(item).strip()]
+        if isinstance(evidence, str) and evidence.strip():
+            return [evidence.strip()]
+        return []
 
     def _get_iam_token(self) -> str:
         response = httpx.post(

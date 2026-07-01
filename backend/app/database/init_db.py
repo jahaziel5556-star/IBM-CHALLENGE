@@ -48,10 +48,9 @@ def _load_json(filename: str) -> list[dict]:
 
 
 def _seed_matches(session: Session) -> None:
-    if session.scalar(select(Match.id).limit(1)):
-        return
-
     for item in _load_json("matches.json"):
+        if session.get(Match, item["id"]):
+            continue
         session.add(
             Match(
                 id=item["id"],
@@ -84,10 +83,9 @@ def _seed_rules(session: Session) -> None:
 
 
 def _seed_events(session: Session) -> None:
-    if session.scalar(select(Event.id).limit(1)):
-        return
-
     for item in _load_json("events.json"):
+        if session.get(Event, item["id"]):
+            continue
         session.add(
             Event(
                 id=item["id"],

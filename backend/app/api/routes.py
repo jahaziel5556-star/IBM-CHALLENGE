@@ -2,6 +2,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
+from app.database.init_db import initialize_database
 from app.schemas.demo import DemoScriptStep
 from app.schemas.profile import ProfileRequest, ProfileResponse, SettingsResponse
 from app.schemas.explain import ExplainRequest, ExplainResponse
@@ -13,9 +14,14 @@ from app.services.profile_service import ProfileService
 from app.services.video_service import VideoService
 
 router = APIRouter()
+_DATABASE_READY = False
 
 
 def _build_services() -> tuple[Session, MatchService, ProfileService, ExplanationService]:
+    global _DATABASE_READY
+    if not _DATABASE_READY:
+        initialize_database()
+        _DATABASE_READY = True
     session = SessionLocal()
     match_service = MatchService(session)
     profile_service = ProfileService(session)
