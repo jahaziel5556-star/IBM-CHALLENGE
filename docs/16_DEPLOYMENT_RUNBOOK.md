@@ -21,6 +21,12 @@ Use this mode when Docker is installed and available on the machine.
 docker compose up --build
 ```
 
+One-command verification on Windows:
+
+```powershell
+.\scripts\verify-compose-stack.ps1
+```
+
 Expected services:
 
 - PostgreSQL on `5432`
@@ -35,6 +41,7 @@ Notes:
 - On Windows with Docker Desktop, the Linux engine also depends on WSL being installed and available.
 - You can diagnose the local prerequisites with `.\scripts\verify-docker-prereqs.ps1`.
 - You can prepare the missing Windows prerequisites with `.\scripts\enable-docker-runtime-prereqs.ps1` from an elevated PowerShell session.
+- The Compose stack now includes healthchecks for PostgreSQL, backend, and frontend services.
 
 ### GitHub Actions CI
 
@@ -70,6 +77,7 @@ The repository includes [ci.yml](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHAL
 - Run `.\scripts\verify-watsonx-live.ps1` when live IBM credentials are configured
 - Run `.\scripts\verify-docker-prereqs.ps1` before attempting Docker Compose validation on Windows
 - If Docker prerequisites are missing on Windows, run `.\scripts\enable-docker-runtime-prereqs.ps1` as Administrator and reboot if prompted
+- Run `.\scripts\verify-compose-stack.ps1` once Docker Desktop is healthy to verify the containerized stack
 - Package a demo handoff with `.\scripts\package-demo-bundle.ps1`
 
 ## Demo Bundle Output

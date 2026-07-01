@@ -19,6 +19,9 @@ $filesToCopy = @(
     "docs\16_DEPLOYMENT_RUNBOOK.md",
     "scripts\run-matchmind-local.ps1",
     "scripts\stop-matchmind-local.ps1",
+    "scripts\verify-compose-stack.ps1",
+    "scripts\verify-docker-prereqs.ps1",
+    "scripts\enable-docker-runtime-prereqs.ps1",
     "scripts\verify-watsonx-live.ps1",
     "scripts\verify-ibm-free-tier.md"
 )
