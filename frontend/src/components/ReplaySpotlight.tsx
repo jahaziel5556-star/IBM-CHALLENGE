@@ -24,6 +24,22 @@ export function ReplaySpotlight({ event }: ReplaySpotlightProps) {
       </div>
       <p className="replay-summary">{event.summary}</p>
       <div className="replay-grid">
+        {event.analysis_source ? (
+          <div>
+            <p className="replay-label">Analysis Source</p>
+            <p>{event.analysis_source.replace(/_/g, " ")}</p>
+          </div>
+        ) : null}
+        {event.cv_evidence ? (
+          <div>
+            <p className="replay-label">CV Evidence</p>
+            <p>
+              Motion {event.cv_evidence.motion_score?.toFixed(2) ?? "0.00"} | Pitch{" "}
+              {event.cv_evidence.pitch_ratio?.toFixed(2) ?? "0.00"} | Scene{" "}
+              {event.cv_evidence.scene_change?.toFixed(2) ?? "0.00"}
+            </p>
+          </div>
+        ) : null}
         <div>
           <p className="replay-label">Prompt Path</p>
           <p>{event.rule.prompt_template}</p>

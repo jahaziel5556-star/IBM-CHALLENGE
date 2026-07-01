@@ -126,7 +126,11 @@ This is the recommended submission route when Docker is unavailable on the works
 
 Run the backend and frontend, open the app, and use the Video Overlay Studio to upload a `.mp4` clip. You can also upload [sample-video-events.json](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHALLENGE/assets/sample-video-events.json) as a sidecar timeline so overlays trigger at real timestamps.
 
+Without a sidecar timeline, the backend now samples the MP4 with OpenCV, extracts visual cues such as motion, scene changes, pitch visibility, line density, and close-up patterns, and routes those observations through Granite when live watsonx credentials are enabled. A deterministic local classifier remains as the offline fallback.
+
 Uploaded clips stay local under `backend/uploads/` and are ignored by Git.
+
+For live Granite event selection, the IBM project must be associated with a Watson Machine Learning service instance. `.\scripts\verify-watsonx-live.ps1` now performs a strict text-chat call and will fail if IBM returns `no_associated_service_instance_error`.
 
 ## How The AI Decides To Speak
 

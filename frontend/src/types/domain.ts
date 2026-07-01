@@ -53,6 +53,8 @@ export type MatchEvent = {
   confidence?: string;
   law_reference?: string;
   silent_recommended?: boolean;
+  analysis_source?: string;
+  cv_evidence?: Record<string, number>;
   rule: {
     event_type: string;
     prompt_template: string;
@@ -71,6 +73,7 @@ export type VideoAsset = {
   event_count: number;
   analysis_status: string;
   timeline_source: string;
+  analysis_observation_count: number;
   created_at: string;
 };
 

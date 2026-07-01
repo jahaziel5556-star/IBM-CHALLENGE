@@ -54,8 +54,14 @@ export function VideoIngestPanel({ activeVideo, isUploading, isAnalyzing, onUplo
 
       {activeVideo ? (
         <div className="video-status">
-          <span>{activeVideo.analysis_status.replace(/_/g, " ")}</span>
-          <strong>{activeVideo.event_count} events</strong>
+          <span>
+            {activeVideo.analysis_status.replace(/_/g, " ")}
+            {activeVideo.timeline_source !== "none" ? ` | ${activeVideo.timeline_source.replace(/_/g, " ")}` : ""}
+          </span>
+          <strong>
+            {activeVideo.event_count} events
+            {activeVideo.analysis_observation_count ? ` / ${activeVideo.analysis_observation_count} frames` : ""}
+          </strong>
         </div>
       ) : null}
     </form>

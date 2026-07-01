@@ -1,11 +1,34 @@
 import json
+from pathlib import Path
 
+import cv2
+import numpy as np
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
 from app.main import app
 
 client = TestClient(app)
+
+
+def _make_test_mp4(path: Path) -> bytes:
+    width, height = 320, 180
+    writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 8, (width, height))
+    for index in range(96):
+        frame = np.zeros((height, width, 3), dtype=np.uint8)
+        frame[:, :] = (38, 118, 42)
+        cv2.line(frame, (width // 2, 0), (width // 2, height), (245, 245, 245), 2)
+        cv2.rectangle(frame, (12, 46), (70, 134), (245, 245, 245), 2)
+        cv2.rectangle(frame, (250, 46), (308, 134), (245, 245, 245), 2)
+        ball_x = 20 + ((index * 7) % (width - 40))
+        ball_y = 76 + int(np.sin(index / 5) * 26)
+        cv2.circle(frame, (ball_x, ball_y), 5, (245, 245, 245), -1)
+        if 40 <= index < 48:
+            frame[:, :] = (42, 42, 42)
+            cv2.putText(frame, "REPLAY", (96, 96), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (245, 245, 245), 2)
+        writer.write(frame)
+    writer.release()
+    return path.read_bytes()
 
 
 def test_health() -> None:
@@ -136,15 +159,19 @@ def test_upload_video_with_sidecar_events(tmp_path, monkeypatch) -> None:
 
 def test_analyze_video_generates_demo_timeline(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
+    video_bytes = _make_test_mp4(tmp_path / "analysis-clip.mp4")
     upload = client.post(
         "/api/videos/upload",
-        files={"video": ("analysis-clip.mp4", b"demo-video", "video/mp4")},
+        files={"video": ("analysis-clip.mp4", video_bytes, "video/mp4")},
     )
     assert upload.status_code == 200
 
     analysis = client.post(f"/api/videos/{upload.json()['id']}/analyze", json={"duration_seconds": 60})
     assert analysis.status_code == 200
     payload = analysis.json()
-    assert payload["video"]["analysis_status"] == "demo_timeline_ready"
+    assert payload["video"]["analysis_status"] == "cv_analysis_ready"
+    assert payload["video"]["timeline_source"] in {"local_cv", "granite_cv"}
+    assert payload["video"]["analysis_observation_count"] >= 3
     assert len(payload["events"]) >= 3
     assert payload["events"][0]["timestamp_seconds"] > 0
+    assert payload["events"][0]["analysis_source"] in {"local_cv", "granite_cv"}

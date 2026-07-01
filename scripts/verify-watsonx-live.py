@@ -56,6 +56,11 @@ def main() -> int:
         )
         return 1
 
+    strict_inference = service.verify_text_chat()
+    print(json.dumps({"strict_text_chat": strict_inference}, indent=2))
+    if not strict_inference.get("ok"):
+        return 1
+
     session = SessionLocal()
     try:
         match_service = MatchService(session)
@@ -69,6 +74,7 @@ def main() -> int:
         json.dumps(
             {
                 "live_inference_ready": True,
+                "generation_mode": explanation_service.ibm_service.last_generation_mode,
                 "headline": response.headline,
                 "prompt_template": response.prompt_template,
                 "law_reference": response.law_reference,

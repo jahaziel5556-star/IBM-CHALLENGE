@@ -36,6 +36,7 @@ Show that MatchMind One improves understanding without interrupting the live foo
 - Backend: `cd backend && .venv\Scripts\activate && uvicorn app.main:app --reload`
 - Browser validation: `cd frontend && npm run test:e2e`
 - MP4 overlay demo: upload a `.mp4` in the Video Overlay Studio, optionally with `assets/sample-video-events.json` as the event timeline
+- Raw MP4 analysis: omit the JSON file to let OpenCV sample video frames and Granite select event candidates from the visual observations
 - Live watsonx validation: `.\scripts\verify-watsonx-live.ps1`
 - CI validation: GitHub Actions runs the same demo-flow verification on pushes and pull requests
 - Demo bundle packaging: `.\scripts\package-demo-bundle.ps1`
@@ -49,4 +50,5 @@ Show that MatchMind One improves understanding without interrupting the live foo
 - The E2E demo-flow test passes against the local stack.
 - A shareable demo bundle can be generated from the current commit.
 - The full non-Docker release-readiness script passes on the local machine.
-- An uploaded MP4 can render timed AI insight overlays from a sidecar timeline or demo-calibrated analysis.
+- An uploaded MP4 can render timed AI insight overlays from a sidecar timeline or raw CV analysis.
+- Raw MP4 analysis produces event candidates from frame-derived CV evidence, with `granite_cv` when watsonx text chat succeeds and `local_cv` when IBM runtime access is unavailable.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import httpx
 
@@ -12,20 +13,123 @@ class GraniteService:
         self.is_mock = settings.ibm_watsonx_use_mock or not (
             settings.ibm_watsonx_api_key and settings.ibm_watsonx_project_id
         )
+        self.last_generation_mode = "mock" if self.is_mock else "watsonx_ready"
 
     def generate(self, *, prompt_template: str, event: dict, profile: str, guidance: dict, prompt_payload: dict) -> dict:
         if self.is_mock:
+            self.last_generation_mode = "mock"
             return self._generate_mock(prompt_template=prompt_template, event=event, profile=profile, guidance=guidance)
 
         try:
-            return self._generate_watsonx(
+            result = self._generate_watsonx(
                 prompt_template=prompt_template,
                 event=event,
                 guidance=guidance,
                 prompt_payload=prompt_payload,
             )
+            self.last_generation_mode = "watsonx"
+            return result
         except Exception:
+            self.last_generation_mode = "fallback_mock"
             return self._generate_mock(prompt_template=prompt_template, event=event, profile=profile, guidance=guidance)
+
+    def generate_video_events(self, *, prompt_payload: dict) -> dict:
+        if self.is_mock:
+            self.last_generation_mode = "mock"
+            return {"events": []}
+
+        try:
+            token = self._get_iam_token()
+            body = {
+                "model_id": settings.ibm_watsonx_model_id,
+                "project_id": settings.ibm_watsonx_project_id,
+                "messages": [
+                    {"role": "system", "content": prompt_payload["system"]},
+                    {"role": "user", "content": [{"type": "text", "text": prompt_payload["user"]}]},
+                ],
+                "max_tokens": 900,
+                "time_limit": settings.ibm_watsonx_timeout_seconds * 1000,
+            }
+            response = httpx.post(
+                f"{settings.ibm_watsonx_url}/ml/v1/text/chat",
+                params={"version": settings.ibm_watsonx_api_version},
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                json=body,
+                timeout=settings.ibm_watsonx_timeout_seconds,
+            )
+            response.raise_for_status()
+            content = response.json()["choices"][0]["message"]["content"]
+            parsed = self._parse_json_object(content)
+            self.last_generation_mode = "watsonx" if parsed.get("events") else "watsonx_empty"
+            return parsed
+        except Exception:
+            self.last_generation_mode = "fallback_mock"
+            return {"events": []}
+
+    def verify_text_chat(self) -> dict:
+        if self.is_mock:
+            return {"ok": False, "mode": "mock", "reason": "watsonx credentials are not configured"}
+
+        token = self._get_iam_token()
+        body = {
+            "model_id": settings.ibm_watsonx_model_id,
+            "project_id": settings.ibm_watsonx_project_id,
+            "messages": [
+                {"role": "system", "content": "Return only valid JSON."},
+                {"role": "user", "content": [{"type": "text", "text": "Return {\"ok\":true}"}]},
+            ],
+            "max_tokens": 80,
+            "time_limit": settings.ibm_watsonx_timeout_seconds * 1000,
+        }
+        response = httpx.post(
+            f"{settings.ibm_watsonx_url}/ml/v1/text/chat",
+            params={"version": settings.ibm_watsonx_api_version},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json=body,
+            timeout=settings.ibm_watsonx_timeout_seconds,
+        )
+        if not response.is_success:
+            return {
+                "ok": False,
+                "mode": "watsonx_error",
+                "status_code": response.status_code,
+                "reason": response.text[:500],
+            }
+        parsed = self._parse_json_object(response.json()["choices"][0]["message"]["content"])
+        return {"ok": bool(parsed.get("ok")), "mode": "watsonx"}
+
+    def _parse_json_object(self, content: str) -> dict:
+        try:
+            parsed = json.loads(content)
+            return parsed if isinstance(parsed, dict) else {"events": []}
+        except json.JSONDecodeError:
+            pass
+
+        fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, flags=re.DOTALL)
+        if fenced:
+            try:
+                parsed = json.loads(fenced.group(1))
+                return parsed if isinstance(parsed, dict) else {"events": []}
+            except json.JSONDecodeError:
+                pass
+
+        start = content.find("{")
+        end = content.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            try:
+                parsed = json.loads(content[start : end + 1])
+                return parsed if isinstance(parsed, dict) else {"events": []}
+            except json.JSONDecodeError:
+                return {"events": []}
+        return {"events": []}
 
     def _generate_watsonx(self, *, prompt_template: str, event: dict, guidance: dict, prompt_payload: dict) -> dict:
         token = self._get_iam_token()

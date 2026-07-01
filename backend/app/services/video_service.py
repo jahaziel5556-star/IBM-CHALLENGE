@@ -10,6 +10,7 @@ from uuid import uuid4
 from fastapi import UploadFile
 
 from app.core.config import settings
+from app.services.video_analyzer import VideoAnalyzer
 
 
 class VideoService:
@@ -49,6 +50,7 @@ class VideoService:
             "event_count": len(events),
             "analysis_status": "events_ready" if events else "uploaded",
             "timeline_source": "sidecar_json" if events else "none",
+            "analysis_observation_count": 0,
             "created_at": datetime.now(UTC).isoformat(),
         }
         self._write_metadata(video_id, metadata)
@@ -63,13 +65,24 @@ class VideoService:
         if existing_events:
             return {"video": metadata, "events": existing_events}
 
-        demo_events = self._build_demo_timeline(video_id=video_id, duration_seconds=duration_seconds)
-        self._write_events(video_id, demo_events)
-        metadata["event_count"] = len(demo_events)
-        metadata["analysis_status"] = "demo_timeline_ready"
-        metadata["timeline_source"] = "demo_calibration"
+        video_path = self._video_dir(video_id) / "video.mp4"
+        analysis = VideoAnalyzer().analyze(
+            video_path=video_path,
+            video_id=video_id,
+            duration_seconds=duration_seconds,
+        )
+        analyzed_events = [
+            self._normalize_event(item, index=index, video_id=video_id)
+            for index, item in enumerate(analysis["events"], start=1)
+        ]
+        self._write_events(video_id, analyzed_events)
+        self._write_analysis(video_id, analysis)
+        metadata["event_count"] = len(analyzed_events)
+        metadata["analysis_status"] = "cv_analysis_ready"
+        metadata["timeline_source"] = analysis["analysis_mode"]
+        metadata["analysis_observation_count"] = len(analysis["observations"])
         self._write_metadata(video_id, metadata)
-        return {"video": metadata, "events": demo_events}
+        return {"video": metadata, "events": analyzed_events}
 
     def list_events(self, video_id: str) -> list[dict]:
         events_path = self._video_dir(video_id) / "events.json"
@@ -132,6 +145,8 @@ class VideoService:
             "confidence": str(item.get("confidence") or "medium"),
             "law_reference": item.get("law_reference") or self._default_law_reference(event_type),
             "silent_recommended": bool(item.get("silent_recommended", False)),
+            "analysis_source": item.get("analysis_source", "sidecar_json" if "timestamp_seconds" in item else "seeded"),
+            "cv_evidence": item.get("cv_evidence"),
             "rule": {
                 "event_type": event_type,
                 "prompt_template": rule["prompt_template"],
@@ -180,6 +195,11 @@ class VideoService:
         events_path = self._video_dir(video_id) / "events.json"
         with events_path.open("w", encoding="utf-8") as file:
             json.dump(events, file, indent=2)
+
+    def _write_analysis(self, video_id: str, analysis: dict) -> None:
+        analysis_path = self._video_dir(video_id) / "analysis.json"
+        with analysis_path.open("w", encoding="utf-8") as file:
+            json.dump(analysis, file, indent=2)
 
     def _video_dir(self, video_id: str) -> Path:
         return self.upload_root / self._slugify(video_id)

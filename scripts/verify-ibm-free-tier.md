@@ -24,3 +24,20 @@
 ## Default implementation mode
 
 `IBM_WATSONX_USE_MOCK=true`
+## Required Watsonx Runtime Association
+
+The API key and project ID are not enough by themselves. The configured project must be associated with a Watson Machine Learning service instance in the same region used by `IBM_WATSONX_URL`.
+
+Run:
+
+```powershell
+.\scripts\verify-watsonx-live.ps1
+```
+
+The verifier now checks three things:
+
+- IAM token can be issued from the API key
+- the configured Granite chat model appears in the regional inventory
+- a strict watsonx text-chat generation succeeds without falling back to mock output
+
+If IBM returns `no_associated_service_instance_error`, open the watsonx project in IBM Cloud and associate it with a WML runtime/service instance before retrying.

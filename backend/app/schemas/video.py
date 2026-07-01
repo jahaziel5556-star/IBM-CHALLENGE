@@ -8,6 +8,7 @@ class VideoAsset(BaseModel):
     event_count: int
     analysis_status: str
     timeline_source: str
+    analysis_observation_count: int = 0
     created_at: str
 
 

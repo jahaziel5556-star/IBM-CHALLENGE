@@ -42,11 +42,13 @@ The optional timeline may be either a JSON array or an object with an `events` a
 
 ### `POST /api/videos/{video_id}/analyze`
 
-Creates a timed event timeline for the uploaded video. If a sidecar JSON timeline was uploaded, the API returns it. If no timeline exists, the current prototype creates a demo-calibrated event sequence so the overlay engine can be demonstrated on real footage.
+Creates a timed event timeline for the uploaded video. If a sidecar JSON timeline was uploaded, the API returns it. If no timeline exists, the backend samples MP4 frames with OpenCV, computes motion, scene-change, pitch-visibility, line-density, scoreboard, and close-up cues, then asks Granite to select event candidates when live watsonx credentials are enabled. If Granite is unavailable, the same CV observations drive a deterministic local classifier.
+
+The response `video.timeline_source` is `granite_cv` when Granite selected event candidates and `local_cv` when the deterministic CV classifier was used.
 
 ### `GET /api/videos/{video_id}/events`
 
-Returns the timed event timeline for an uploaded MP4. These events can be sent to `POST /api/explain` using their `event_id`.
+Returns the timed event timeline for an uploaded MP4. These events include `analysis_source` and optional `cv_evidence`, and can be sent to `POST /api/explain` using their `event_id`.
 
 ### `POST /api/explain`
 

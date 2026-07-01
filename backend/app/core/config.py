@@ -1,11 +1,19 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(BACKEND_ROOT / ".env", REPO_ROOT / ".env"),
+        env_prefix="",
+        extra="ignore",
+    )
 
     app_name: str = "MatchMind One API"
     env: str = Field(default="development", alias="MATCHMIND_ENV")
@@ -24,6 +32,10 @@ class Settings(BaseSettings):
     database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
     seed_demo_data: bool = Field(default=True, alias="SEED_DEMO_DATA")
     upload_dir: str = Field(default="uploads", alias="UPLOAD_DIR")
+    video_analysis_sample_seconds: float = Field(default=4.0, alias="VIDEO_ANALYSIS_SAMPLE_SECONDS")
+    video_analysis_max_samples: int = Field(default=60, alias="VIDEO_ANALYSIS_MAX_SAMPLES")
+    video_analysis_min_events: int = Field(default=3, alias="VIDEO_ANALYSIS_MIN_EVENTS")
+    video_analysis_use_granite: bool = Field(default=True, alias="VIDEO_ANALYSIS_USE_GRANITE")
     ibm_watsonx_api_key: str = Field(default="", alias="IBM_WATSONX_API_KEY")
     ibm_watsonx_project_id: str = Field(default="", alias="IBM_WATSONX_PROJECT_ID")
     ibm_watsonx_url: str = Field(default="https://us-south.ml.cloud.ibm.com", alias="IBM_WATSONX_URL")
