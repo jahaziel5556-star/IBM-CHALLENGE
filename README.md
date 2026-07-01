@@ -170,3 +170,9 @@ To chain the final Docker checks once prerequisites are fixed:
 ```powershell
 .\scripts\finalize-docker-verification.ps1
 ```
+
+Or from Command Prompt:
+
+```cmd
+scripts\run-final-deployment-checks.cmd
+```

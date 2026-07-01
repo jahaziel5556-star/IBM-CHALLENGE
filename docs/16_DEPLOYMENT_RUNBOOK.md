@@ -80,6 +80,7 @@ The repository includes [ci.yml](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHAL
 - If Docker prerequisites are missing on Windows, run `.\scripts\enable-docker-runtime-prereqs.ps1` as Administrator and reboot if prompted
 - Run `.\scripts\verify-compose-stack.ps1` once Docker Desktop is healthy to verify the containerized stack
 - Or run `.\scripts\finalize-docker-verification.ps1` to execute the prerequisite check followed by Compose verification
+- Or run `scripts\run-final-deployment-checks.cmd` from Command Prompt for the same end-to-end check
 - Package a demo handoff with `.\scripts\package-demo-bundle.ps1`
 
 ## Demo Bundle Output
