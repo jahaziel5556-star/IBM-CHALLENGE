@@ -298,6 +298,14 @@ vi.stubGlobal(
             silence_rule: "Stay silent when the contact remains too uncertain.",
             retrieval_sources: ["fifa_laws", "match_context"],
             evidence: ["62' minute context", "The defender made contact before winning the ball.", "Law 12"],
+            decision: {
+              should_speak: true,
+              priority: 95,
+              priority_label: "critical",
+              confidence: "high",
+              reason: "Critical priority penalty matched the new_fan profile threshold.",
+              timing: "Explain after the decision or replay confirms contact.",
+            },
             overlay: {
               placement: "lower-right",
               duration_seconds: 7,

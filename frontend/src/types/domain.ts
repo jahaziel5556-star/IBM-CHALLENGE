@@ -99,6 +99,14 @@ export type ExplainResponse = {
   silence_rule: string;
   retrieval_sources: string[];
   evidence: string[];
+  decision: {
+    should_speak: boolean;
+    priority: number;
+    priority_label: string;
+    confidence: string;
+    reason: string;
+    timing: string;
+  };
   overlay: {
     placement: string;
     duration_seconds: number;

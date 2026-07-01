@@ -1,5 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import fs from "node:fs";
 
 import { defineConfig } from "@playwright/test";
 
@@ -11,6 +12,10 @@ const backendCommand = isWindows
 const frontendCommand = isWindows ? "npm.cmd run dev:e2e" : "npm run dev:e2e";
 const backendCwd = path.resolve(configDir, "../backend");
 const frontendCwd = path.resolve(configDir);
+const e2eUploadDir = path.resolve(configDir, "../.runtime/e2e-uploads");
+
+fs.rmSync(e2eUploadDir, { recursive: true, force: true });
+fs.mkdirSync(e2eUploadDir, { recursive: true });
 
 export default defineConfig({
   testDir: "./e2e",
@@ -29,6 +34,10 @@ export default defineConfig({
       url: "http://127.0.0.1:38011/health",
       reuseExistingServer: false,
       cwd: backendCwd,
+      env: {
+        ...process.env,
+        UPLOAD_DIR: e2eUploadDir,
+      },
       timeout: 60_000,
     },
     {

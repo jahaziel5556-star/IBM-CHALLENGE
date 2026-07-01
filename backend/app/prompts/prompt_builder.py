@@ -1,9 +1,11 @@
 class PromptBuilder:
-    def build(self, *, event: dict, profile: str) -> dict:
+    def build(self, *, event: dict, profile: str, decision: dict | None = None) -> dict:
         rule = event["rule"]
+        decision = decision or {}
         system_prompt = (
             "You are MatchMind One, an explainable football broadcast intelligence system. "
             "Be concise, truthful, grounded in the provided event and rule context, and never invent laws or facts. "
+            "Use no more than two short sentences for the explanation. "
             "Return JSON with keys: headline, explanation, confidence, law_reference, evidence."
         )
 
@@ -22,6 +24,8 @@ class PromptBuilder:
             f"Prompt template: {rule['prompt_template']}\n"
             f"Retrieval sources: {', '.join(rule.get('retrieval_sources', []))}\n"
             f"Law reference: {event.get('law_reference') or 'none'}\n"
+            f"Event engine decision: {'speak' if decision.get('should_speak', True) else 'stay silent'}\n"
+            f"Decision reason: {decision.get('reason', '')}\n"
             "Explain why this moment matters right now for the specified viewer profile."
         )
 

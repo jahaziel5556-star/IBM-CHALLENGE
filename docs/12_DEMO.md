@@ -23,8 +23,10 @@ Show that MatchMind One improves understanding without interrupting the live foo
 ## Key Talking Points
 
 - The AI stays quiet unless the event has explanatory value.
+- The Event Engine decides whether to speak before IBM Granite writes the explanation.
 - The same event changes by viewer profile.
 - Explanations are grounded in rule context, not free-form commentary.
+- The compact overlay keeps evidence and rule detail out of the main video area.
 - The system is designed for IBM watsonx.ai with a safe mock fallback for local demos.
 
 ## Demo Runtime

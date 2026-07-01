@@ -68,6 +68,14 @@ Response:
   "explanation": "The defender made contact before playing the ball, so the foul stopped the attacker unfairly.",
   "confidence": "high",
   "law_reference": "Law 12",
+  "decision": {
+    "should_speak": true,
+    "priority": 95,
+    "priority_label": "critical",
+    "confidence": "high",
+    "reason": "Critical priority penalty matched the new_fan profile threshold.",
+    "timing": "Explain after the decision or after the decisive replay shows contact."
+  },
   "overlay": {
     "placement": "lower-right",
     "duration_seconds": 7

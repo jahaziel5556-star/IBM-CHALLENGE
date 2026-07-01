@@ -11,21 +11,16 @@ export function InsightOverlay({ insight }: InsightOverlayProps) {
 
   return (
     <aside className="insight-overlay" aria-live="polite">
-      <p className="overlay-kicker">AI Insight</p>
-      <h3>{insight.headline}</h3>
-      <p>{insight.explanation}</p>
-      <p className="overlay-support">{insight.why_now}</p>
-      <div className="overlay-evidence">
-        {insight.evidence.map((item) => (
-          <span key={item} className="evidence-chip">
-            {item}
-          </span>
-        ))}
+      <div className="overlay-topline">
+        <p className="overlay-kicker">AI Insight</p>
+        <span>{insight.decision.priority_label}</span>
       </div>
+      <h3>{insight.headline}</h3>
+      <p className="overlay-explanation">{insight.explanation}</p>
+      <p className="overlay-decision">{insight.decision.reason}</p>
       <div className="overlay-meta">
         <span>{insight.confidence.toUpperCase()} CONFIDENCE</span>
         {insight.law_reference ? <span>{insight.law_reference}</span> : null}
-        <span>{insight.prompt_template}</span>
       </div>
     </aside>
   );

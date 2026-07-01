@@ -85,6 +85,9 @@ def test_explain_includes_rule_context() -> None:
     assert payload["why_now"]
     assert payload["retrieval_sources"]
     assert payload["evidence"]
+    assert payload["decision"]["should_speak"] is True
+    assert payload["decision"]["priority_label"] in {"medium", "high", "critical"}
+    assert payload["overlay"]["duration_seconds"] <= 10
 
 
 def test_upload_video_with_sidecar_events(tmp_path, monkeypatch) -> None:

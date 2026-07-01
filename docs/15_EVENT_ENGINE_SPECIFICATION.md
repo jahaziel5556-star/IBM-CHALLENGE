@@ -235,6 +235,8 @@ Prefer timing immediately after replay, during stoppages, after commentator emph
 
 Every explanation returns headline, explanation, evidence, confidence, applicable law when grounded, overlay duration, prompt template, retrieval sources, and silence rule.
 
+Every explanation also returns an Event Engine decision object with `should_speak`, `priority`, `priority_label`, `confidence`, `reason`, and `timing` so the product can show why the AI spoke.
+
 Maximum explanation length is two sentences and approximately 60 words.
 
 ## Quality Rules

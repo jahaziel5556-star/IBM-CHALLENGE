@@ -650,21 +650,70 @@ input {
 
 .insight-overlay {
   position: absolute;
-  right: 40px;
-  bottom: 110px;
-  width: min(360px, calc(100% - 80px));
-  padding: 18px;
-  border-radius: 22px;
-  box-shadow: var(--shadow);
+  right: clamp(16px, 3vw, 28px);
+  bottom: 92px;
+  width: min(312px, calc(100% - 32px));
+  max-height: 220px;
+  padding: 13px 14px;
+  overflow: hidden;
+  border-left: 3px solid var(--accent);
+  border-radius: 14px;
+  background: rgba(3, 12, 21, 0.68);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.26);
+  pointer-events: none;
   animation: overlay-in 220ms ease;
+}
+
+.overlay-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.overlay-topline span {
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.insight-overlay h3 {
+  margin: 7px 0 5px;
+  font-size: 1.02rem;
+  line-height: 1.15;
+}
+
+.overlay-explanation,
+.overlay-decision {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.overlay-explanation {
+  color: var(--text);
+  line-height: 1.35;
+  -webkit-line-clamp: 3;
+}
+
+.overlay-decision {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.25;
+  -webkit-line-clamp: 2;
 }
 
 .overlay-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
+  margin-top: 9px;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
 }
 
 .overlay-support {

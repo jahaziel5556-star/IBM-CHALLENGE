@@ -11,6 +11,15 @@ class OverlayPayload(BaseModel):
     duration_seconds: int
 
 
+class EventEngineDecision(BaseModel):
+    should_speak: bool
+    priority: int
+    priority_label: str
+    confidence: str
+    reason: str
+    timing: str
+
+
 class ExplainResponse(BaseModel):
     event_id: str
     headline: str
@@ -24,3 +33,4 @@ class ExplainResponse(BaseModel):
     silence_rule: str
     retrieval_sources: list[str]
     evidence: list[str]
+    decision: EventEngineDecision

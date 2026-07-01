@@ -1,5 +1,6 @@
 from app.prompts.prompt_builder import PromptBuilder
 from app.schemas.explain import ExplainRequest, ExplainResponse, OverlayPayload
+from app.services.event_engine import EventEngine
 from app.services.ibm_service import GraniteService
 from app.services.match_service import MatchService
 from app.services.profile_service import ProfileService
@@ -11,6 +12,7 @@ class ExplanationService:
         self.profile_service = profile_service
         self.ibm_service = GraniteService()
         self.prompt_builder = PromptBuilder()
+        self.event_engine = EventEngine()
 
     def explain_event(self, request: ExplainRequest) -> ExplainResponse:
         event = self.match_service.get_event(request.event_id)
@@ -18,8 +20,9 @@ class ExplanationService:
             raise ValueError("Event not found")
 
         rule = event["rule"]
+        decision = self.event_engine.evaluate(event=event, profile=request.profile)
         guidance = self._build_guidance(event=event, profile=request.profile)
-        prompt_payload = self.prompt_builder.build(event=event, profile=request.profile)
+        prompt_payload = self.prompt_builder.build(event=event, profile=request.profile, decision=decision)
         model_output = self.ibm_service.generate(
             prompt_template=rule["prompt_template"],
             event=event,
@@ -44,6 +47,7 @@ class ExplanationService:
             silence_rule=rule.get("silence_summary", ""),
             retrieval_sources=rule.get("retrieval_sources", []),
             evidence=model_output["evidence"],
+            decision=decision,
         )
 
     def _build_guidance(self, *, event: dict, profile: str) -> dict:

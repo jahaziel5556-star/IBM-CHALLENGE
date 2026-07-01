@@ -128,6 +128,12 @@ Run the backend and frontend, open the app, and use the Video Overlay Studio to 
 
 Uploaded clips stay local under `backend/uploads/` and are ignored by Git.
 
+## How The AI Decides To Speak
+
+MatchMind One uses a two-step AI flow. First, the Event Engine classifies the match moment, checks priority, confidence, timing, viewer profile, and silence rules, then decides whether an overlay is useful. Only after that does IBM Granite receive the grounded event context and write the short explanation.
+
+The overlay is intentionally compact and edge-docked so the match stays primary. Deeper evidence and rule details stay in the side panels instead of covering the video.
+
 ## GitHub CI
 
 The repository now includes [`.github/workflows/ci.yml`](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHALLENGE/.github/workflows/ci.yml) for:
