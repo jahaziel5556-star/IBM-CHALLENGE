@@ -22,6 +22,8 @@ $filesToCopy = @(
     "scripts\verify-compose-stack.ps1",
     "scripts\verify-docker-prereqs.ps1",
     "scripts\enable-docker-runtime-prereqs.ps1",
+    "scripts\launch-docker-setup-admin.cmd",
+    "scripts\finalize-docker-verification.ps1",
     "scripts\verify-watsonx-live.ps1",
     "scripts\verify-ibm-free-tier.md"
 )

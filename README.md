@@ -149,6 +149,12 @@ If the report shows missing WSL or a stopped Docker Desktop service, open an ele
 
 Then reboot if Windows asks you to, start Docker Desktop, and rerun `.\scripts\verify-docker-prereqs.ps1`.
 
+If you want a one-click UAC launcher instead, run:
+
+```cmd
+scripts\launch-docker-setup-admin.cmd
+```
+
 ## Compose Smoke Test
 
 After Docker Desktop is healthy, you can verify the full containerized stack with:
@@ -158,3 +164,9 @@ After Docker Desktop is healthy, you can verify the full containerized stack wit
 ```
 
 This builds the services, starts the Compose stack, waits for readiness, and exercises the backend health, system summary, and explain endpoints.
+
+To chain the final Docker checks once prerequisites are fixed:
+
+```powershell
+.\scripts\finalize-docker-verification.ps1
+```
