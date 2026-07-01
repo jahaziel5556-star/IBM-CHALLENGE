@@ -326,6 +326,7 @@ describe("App", () => {
     expect(screen.getByText(/Broadcast clip/i)).toBeInTheDocument();
     expect(screen.getByText(/Explainable moments/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Open Match Insights/i })).toBeInTheDocument();
+    expect(screen.getByText(/Voice not supported in this browser/i)).toBeInTheDocument();
     expect(screen.getByText(/Service Ready/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /new fan/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Large text/i)).toBeInTheDocument();

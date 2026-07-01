@@ -993,6 +993,7 @@ input {
 }
 
 .video-ingest,
+.voice-assist,
 .setting-row {
   background: rgba(255, 255, 255, 0.03);
 }
@@ -1000,6 +1001,47 @@ input {
 .video-ingest h2 {
   margin: 4px 0 0;
   font-size: 1rem;
+}
+
+.voice-assist {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.voice-button {
+  min-width: 62px;
+  padding: 11px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.voice-button-live {
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.12);
+  color: #ffdbe2;
+}
+
+.voice-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.voice-copy p,
+.voice-copy span {
+  margin: 0;
+}
+
+.voice-copy p:last-of-type,
+.voice-copy span {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .match-stage {

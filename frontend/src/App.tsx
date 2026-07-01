@@ -9,6 +9,7 @@ import { ProfileSwitcher } from "./components/ProfileSwitcher";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { StateNotice } from "./components/StateNotice";
 import { VideoIngestPanel } from "./components/VideoIngestPanel";
+import { VoiceAssist } from "./components/VoiceAssist";
 import type {
   DemoScriptStep,
   ExplainResponse,
@@ -39,6 +40,17 @@ const EXPLAINABLE_EVENT_TYPES = new Set([
   "substitution",
 ]);
 
+type SpeechRecognitionCtor = new () => {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
 function findClosestVideoEvent(events: MatchEvent[], seconds: number) {
   const timedEvents = events
     .filter((event) => typeof event.timestamp_seconds === "number")
@@ -58,6 +70,30 @@ function shouldOfferInsight(event: MatchEvent | undefined) {
   }
 
   return event.rule.priority >= 80 || EXPLAINABLE_EVENT_TYPES.has(event.type);
+}
+
+function resolveVoiceEvent(question: string, events: MatchEvent[], selectedEvent?: MatchEvent) {
+  const normalized = question.toLowerCase();
+  const explainable = events.filter((event) => shouldOfferInsight(event));
+  const checks: Array<[string[], (event: MatchEvent) => boolean]> = [
+    [["penalty"], (event) => ["penalty", "no_penalty"].includes(event.type)],
+    [["offside", "disallowed"], (event) => ["offside", "goal_disallowed"].includes(event.type)],
+    [["var", "review"], (event) => event.type === "var_review"],
+    [["red card", "sent off"], (event) => event.type === "red_card"],
+    [["yellow card", "booking"], (event) => event.type === "yellow_card"],
+    [["substitution", "sub"], (event) => event.type === "substitution"],
+  ];
+
+  for (const [keywords, predicate] of checks) {
+    if (keywords.some((keyword) => normalized.includes(keyword))) {
+      const matched = explainable.find(predicate);
+      if (matched) {
+        return matched;
+      }
+    }
+  }
+
+  return selectedEvent && shouldOfferInsight(selectedEvent) ? selectedEvent : explainable[0];
 }
 
 export default function App() {
@@ -94,6 +130,10 @@ export default function App() {
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isVoiceSupported, setIsVoiceSupported] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceError, setVoiceError] = useState("");
 
   useEffect(() => {
     async function loadApp() {
@@ -139,9 +179,17 @@ export default function App() {
     void loadApp();
   }, []);
 
+  useEffect(() => {
+    const recognitionAvailable =
+      typeof window !== "undefined" &&
+      Boolean((window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor }).SpeechRecognition ||
+        (window as Window & { webkitSpeechRecognition?: SpeechRecognitionCtor }).webkitSpeechRecognition);
+    setIsVoiceSupported(recognitionAvailable);
+  }, []);
+
   async function handleExplain(
     eventId: string,
-    options?: { fromVideoRun?: boolean; requestProfile?: ProfileId; openDrawer?: boolean },
+    options?: { fromVideoRun?: boolean; requestProfile?: ProfileId; openDrawer?: boolean; speakAnswer?: boolean },
   ) {
     if (!eventId) {
       return;
@@ -158,6 +206,10 @@ export default function App() {
       setActiveInsight(insight);
       setIsInsightDrawerOpen(Boolean(options?.openDrawer));
       setIsInsightSuggested(Boolean(options?.fromVideoRun));
+      if (options?.speakAnswer && typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(insight.explanation));
+      }
       setErrorMessage("");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Insight generation failed.");
@@ -335,6 +387,59 @@ export default function App() {
     void handleExplain(selectedEventId, { openDrawer: true });
   }
 
+  function handleToggleVoiceAssistant() {
+    if (!isVoiceSupported || typeof window === "undefined") {
+      return;
+    }
+
+    const host = window as Window & {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+      __matchmindRecognition?: InstanceType<SpeechRecognitionCtor>;
+    };
+    const Recognition = host.SpeechRecognition ?? host.webkitSpeechRecognition;
+    if (!Recognition) {
+      return;
+    }
+
+    if (isListening) {
+      host.__matchmindRecognition?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new Recognition();
+    host.__matchmindRecognition = recognition;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    setVoiceError("");
+    setVoiceTranscript("");
+    setIsListening(true);
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript ?? "")
+        .join(" ")
+        .trim();
+      setVoiceTranscript(transcript);
+      const matchedEvent = resolveVoiceEvent(transcript, events, selectedEvent);
+      if (matchedEvent) {
+        setSelectedEventId(matchedEvent.id);
+        setLastExplainedMinute(matchedEvent.minute);
+        void handleExplain(matchedEvent.id, { speakAnswer: true, openDrawer: false });
+      }
+    };
+    recognition.onerror = (event) => {
+      setVoiceError(event.error === "not-allowed" ? "Microphone permission denied" : `Voice error: ${event.error}`);
+      setIsListening(false);
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    recognition.start();
+  }
+
   const selectedEvent = events.find((event) => event.id === selectedEventId);
   const explainableEvents = events.filter((event) => shouldOfferInsight(event));
   const canOpenInsight = shouldOfferInsight(selectedEvent);
@@ -386,6 +491,13 @@ export default function App() {
           <div className="broadcast-toolbar">
             <ProfileSwitcher profiles={profiles} activeProfile={profile} onChange={handleProfileChange} />
             <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
+            <VoiceAssist
+              isSupported={isVoiceSupported}
+              isListening={isListening}
+              transcript={voiceTranscript}
+              error={voiceError}
+              onToggleListening={handleToggleVoiceAssistant}
+            />
             <VideoIngestPanel
               activeVideo={activeVideo}
               isUploading={isUploadingVideo}
