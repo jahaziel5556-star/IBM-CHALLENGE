@@ -1,18 +1,13 @@
 import { useEffect, useState } from "react";
 
 import { apiAssetUrl, apiGet, apiPost, apiUpload } from "./api/client";
-import { BroadcastControls } from "./components/BroadcastControls";
-import { DemoGuide } from "./components/DemoGuide";
 import { EventTimeline } from "./components/EventTimeline";
 import { HeaderBar } from "./components/HeaderBar";
-import { InsightHistory } from "./components/InsightHistory";
 import { InsightOverlay } from "./components/InsightOverlay";
 import { MatchStage } from "./components/MatchStage";
 import { ProfileSwitcher } from "./components/ProfileSwitcher";
-import { ReplaySpotlight } from "./components/ReplaySpotlight";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { StateNotice } from "./components/StateNotice";
-import { SystemReadiness } from "./components/SystemReadiness";
 import { VideoIngestPanel } from "./components/VideoIngestPanel";
 import type {
   DemoScriptStep,
@@ -29,6 +24,19 @@ import type {
 
 const profiles: ProfileId[] = ["new_fan", "casual_viewer", "analyst", "child", "accessibility"];
 
+function findClosestVideoEvent(events: MatchEvent[], seconds: number) {
+  const timedEvents = events
+    .filter((event) => typeof event.timestamp_seconds === "number")
+    .sort((left, right) => Number(left.timestamp_seconds) - Number(right.timestamp_seconds));
+
+  if (timedEvents.length === 0) {
+    return undefined;
+  }
+
+  const passedEvent = [...timedEvents].reverse().find((event) => Number(event.timestamp_seconds) <= seconds + 0.4);
+  return passedEvent ?? timedEvents[0];
+}
+
 export default function App() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [events, setEvents] = useState<MatchEvent[]>([]);
@@ -42,12 +50,8 @@ export default function App() {
     high_contrast: false,
     reduced_motion: false,
   });
-  const [queuedEventIds, setQueuedEventIds] = useState<string[]>([]);
-  const [isAutoRunning, setIsAutoRunning] = useState(false);
-  const [processedEventIds, setProcessedEventIds] = useState<string[]>([]);
   const [videoTriggeredEventIds, setVideoTriggeredEventIds] = useState<string[]>([]);
   const [lastExplainedMinute, setLastExplainedMinute] = useState<number | null>(null);
-  const [isDemoRunning, setIsDemoRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isAnalyzingVideo, setIsAnalyzingVideo] = useState(false);
@@ -58,19 +62,14 @@ export default function App() {
     ibm_mode: "mock",
     database_backend: "sqlite",
   });
-  const [demoScript, setDemoScript] = useState<DemoScriptStep[]>([]);
-  const [systemSummary, setSystemSummary] = useState<SystemSummary | null>(null);
+  const [, setDemoScript] = useState<DemoScriptStep[]>([]);
+  const [, setSystemSummary] = useState<SystemSummary | null>(null);
   const [videos, setVideos] = useState<VideoAsset[]>([]);
   const [activeVideo, setActiveVideo] = useState<VideoAsset | null>(null);
-  const [insightHistory, setInsightHistory] = useState<
-    Array<{
-      eventId: string;
-      profile: ProfileId;
-      insight: ExplainResponse;
-      minute: number;
-      title: string;
-    }>
-  >([]);
+  const [isInsightDrawerOpen, setIsInsightDrawerOpen] = useState(false);
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   useEffect(() => {
     async function loadApp() {
@@ -116,93 +115,27 @@ export default function App() {
     void loadApp();
   }, []);
 
-  useEffect(() => {
-    if (!activeInsight) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => setActiveInsight(null), activeInsight.overlay.duration_seconds * 1000);
-    return () => window.clearTimeout(timeout);
-  }, [activeInsight]);
-
-  useEffect(() => {
-    if (!isAutoRunning || events.length === 0) {
-      return;
-    }
-
-    let cancelled = false;
-    const delay = profileSettings.reduced_motion ? 2600 : 1800;
-    const sequenceSource = isDemoRunning ? demoScript.map((item) => item.event_id) : events.map((event) => event.id);
-    const remainingEvents = sequenceSource
-      .map((eventId) => events.find((event) => event.id === eventId))
-      .filter((event): event is MatchEvent => Boolean(event))
-      .filter((event) => !processedEventIds.includes(event.id))
-      .sort((left, right) => left.minute - right.minute);
-
-    async function runSequence() {
-      for (const event of remainingEvents) {
-        if (cancelled) {
-          return;
-        }
-        const shouldQueue =
-          lastExplainedMinute === null ||
-          event.minute - lastExplainedMinute >= 6 ||
-          event.rule.priority >= 90;
-
-        if (!shouldQueue) {
-          continue;
-        }
-
-        setQueuedEventIds((current) => [...current, event.id]);
-        await handleExplain(event.id, { fromAutoRun: true });
-        if (cancelled) {
-          return;
-        }
-        await new Promise((resolve) => window.setTimeout(resolve, delay));
-      }
-      setIsAutoRunning(false);
-      setIsDemoRunning(false);
-    }
-
-    void runSequence();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAutoRunning, events, isDemoRunning, lastExplainedMinute, processedEventIds, profileSettings.reduced_motion, demoScript]);
-
-  async function handleExplain(eventId: string, options?: { fromAutoRun?: boolean; fromVideoRun?: boolean; requestProfile?: ProfileId }) {
+  async function handleExplain(
+    eventId: string,
+    options?: { fromVideoRun?: boolean; requestProfile?: ProfileId; openDrawer?: boolean },
+  ) {
     if (!eventId) {
       return;
     }
+
     setSelectedEventId(eventId);
     try {
       const activeProfile = options?.requestProfile ?? profile;
       const insight = await apiPost<ExplainResponse>("/api/explain", { profile: activeProfile, event_id: eventId });
-      setQueuedEventIds((current) => current.filter((queuedId) => queuedId !== eventId));
       const event = events.find((item) => item.id === eventId);
       if (event) {
         setLastExplainedMinute(event.minute);
-        setInsightHistory((current) => [
-          {
-            eventId,
-            profile: activeProfile,
-            insight,
-            minute: event.minute,
-            title: event.title,
-          },
-          ...current.filter((entry) => !(entry.eventId === eventId && entry.profile === activeProfile)),
-        ]);
-      }
-      if (options?.fromAutoRun || options?.fromVideoRun) {
-        setProcessedEventIds((current) => [...new Set([...current, eventId])]);
       }
       setActiveInsight(insight);
+      setIsInsightDrawerOpen(options?.openDrawer ?? !options?.fromVideoRun);
       setErrorMessage("");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Insight generation failed.");
-      setIsAutoRunning(false);
-      setIsDemoRunning(false);
     }
   }
 
@@ -211,8 +144,8 @@ export default function App() {
     const nextSettings = { ...profileSettings, profile: nextProfile };
     setProfileSettings(nextSettings);
     await apiPost("/api/profile", nextSettings);
-    if (selectedEventId) {
-      void handleExplain(selectedEventId, { requestProfile: nextProfile });
+    if (selectedEventId && activeInsight) {
+      void handleExplain(selectedEventId, { requestProfile: nextProfile, openDrawer: isInsightDrawerOpen });
     }
   }
 
@@ -220,38 +153,6 @@ export default function App() {
     const nextSettings = { ...profileSettings, profile, [field]: value };
     setProfileSettings(nextSettings);
     await apiPost("/api/profile", nextSettings);
-  }
-
-  function handleStartAutoRun() {
-    setQueuedEventIds([]);
-    setProcessedEventIds([]);
-    setVideoTriggeredEventIds([]);
-    setLastExplainedMinute(null);
-    setInsightHistory([]);
-    setIsDemoRunning(false);
-    setIsAutoRunning(true);
-  }
-
-  function handleStartDemo() {
-    setQueuedEventIds([]);
-    setProcessedEventIds([]);
-    setVideoTriggeredEventIds([]);
-    setLastExplainedMinute(null);
-    setInsightHistory([]);
-    setIsDemoRunning(true);
-    setIsAutoRunning(true);
-  }
-
-  function handleStopAutoRun() {
-    setIsAutoRunning(false);
-    setIsDemoRunning(false);
-    setQueuedEventIds([]);
-  }
-
-  function handleJumpToDemoStep(eventId: string) {
-    setIsAutoRunning(false);
-    setIsDemoRunning(false);
-    void handleExplain(eventId);
   }
 
   async function handleVideoUpload(videoFile: File, eventsFile?: File) {
@@ -268,9 +169,11 @@ export default function App() {
       setVideos((current) => [uploadedVideo, ...current.filter((video) => video.id !== uploadedVideo.id)]);
       setActiveVideo(uploadedVideo);
       setActiveInsight(null);
-      setInsightHistory([]);
-      setProcessedEventIds([]);
+      setIsInsightDrawerOpen(false);
       setVideoTriggeredEventIds([]);
+      setVideoCurrentTime(0);
+      setVideoDuration(0);
+      setIsVideoPlaying(false);
       if (uploadedVideo.event_count > 0) {
         await loadVideoEvents(uploadedVideo);
       } else {
@@ -292,6 +195,8 @@ export default function App() {
   }
 
   async function handleAnalyzeVideo(duration: number) {
+    setVideoDuration(duration);
+
     if (!activeVideo || activeVideo.event_count > 0 || isAnalyzingVideo) {
       return;
     }
@@ -305,7 +210,6 @@ export default function App() {
       setVideos((current) => [analysis.video, ...current.filter((video) => video.id !== analysis.video.id)]);
       setEvents(analysis.events);
       setSelectedEventId(analysis.events[0]?.id ?? "");
-      setProcessedEventIds([]);
       setVideoTriggeredEventIds([]);
       setErrorMessage("");
     } catch (error) {
@@ -315,7 +219,45 @@ export default function App() {
     }
   }
 
+  function handleVideoSeek(seconds: number) {
+    setVideoCurrentTime(seconds);
+    setIsVideoPlaying(false);
+    setActiveInsight(null);
+    setIsInsightDrawerOpen(false);
+
+    const timedEvents = events.filter((event) => event.video_id === activeVideo?.id && typeof event.timestamp_seconds === "number");
+    const closestEvent = findClosestVideoEvent(timedEvents, seconds);
+    if (closestEvent) {
+      setSelectedEventId(closestEvent.id);
+      setLastExplainedMinute(closestEvent.minute);
+    }
+
+    setVideoTriggeredEventIds(
+      timedEvents
+        .filter((event) => Number(event.timestamp_seconds) <= seconds + 0.4)
+        .map((event) => event.id),
+    );
+  }
+
   function handleVideoTimeUpdate(currentTime: number) {
+    setVideoCurrentTime((previous) => {
+      if (currentTime + 0.5 < previous) {
+        const timedEvents = events.filter((event) => event.video_id === activeVideo?.id && typeof event.timestamp_seconds === "number");
+        setVideoTriggeredEventIds(
+          timedEvents
+            .filter((event) => Number(event.timestamp_seconds) <= currentTime + 0.4)
+            .map((event) => event.id),
+        );
+      }
+      return currentTime;
+    });
+
+    const visibleEvent = findClosestVideoEvent(events.filter((event) => event.video_id === activeVideo?.id), currentTime);
+    if (visibleEvent) {
+      setSelectedEventId(visibleEvent.id);
+      setLastExplainedMinute(visibleEvent.minute);
+    }
+
     if (!activeVideo || activeInsight || events.length === 0) {
       return;
     }
@@ -334,6 +276,14 @@ export default function App() {
 
     setVideoTriggeredEventIds((current) => [...new Set([...current, dueEvent.id])]);
     void handleExplain(dueEvent.id, { fromVideoRun: true });
+  }
+
+  function handleSelectEvent(eventId: string) {
+    const event = events.find((item) => item.id === eventId);
+    if (event && typeof event.timestamp_seconds === "number") {
+      handleVideoSeek(Number(event.timestamp_seconds));
+    }
+    void handleExplain(eventId, { openDrawer: true });
   }
 
   const selectedEvent = events.find((event) => event.id === selectedEventId);
@@ -371,18 +321,18 @@ export default function App() {
         databaseBackend={health.database_backend}
         isHealthy={health.status === "ok"}
       />
-      <main className="page-grid">
-        <section className="hero-panel">
-          <div className="hero-copy">
-            <p className="eyebrow">AI Broadcast Intelligence Layer</p>
-            <h1>Explain the match without interrupting the match.</h1>
+
+      <main className="broadcast-layout">
+        <section className="broadcast-intro">
+          <div>
+            <p className="eyebrow">AI Understanding Layer</p>
+            <h1>Keep the match front and center.</h1>
             <p className="lede">
-              MatchMind One adds timed, explainable football insights only when viewers need help understanding
-              what just changed.
+              MatchMind One stays quiet until a moment becomes genuinely confusing, then offers a clean explanation without taking over the screen.
             </p>
           </div>
 
-          <div className="controls-panel">
+          <div className="broadcast-toolbar">
             <ProfileSwitcher profiles={profiles} activeProfile={profile} onChange={handleProfileChange} />
             <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
             <VideoIngestPanel
@@ -391,72 +341,64 @@ export default function App() {
               isAnalyzing={isAnalyzingVideo}
               onUpload={handleVideoUpload}
             />
-            <BroadcastControls
-              isAutoRunning={isAutoRunning}
-              isDemoRunning={isDemoRunning}
-              queueLength={queuedEventIds.length}
-              onStart={handleStartAutoRun}
-              onStartDemo={handleStartDemo}
-              onStop={handleStopAutoRun}
-            />
-            <SystemReadiness summary={systemSummary} />
-            <DemoGuide
-              currentMinute={liveMinute}
-              currentScore={liveScore}
-              isAutoRunning={isAutoRunning}
-              demoScript={demoScript}
-              activeEventId={selectedEventId}
-              onJumpToStep={handleJumpToDemoStep}
-            />
-            <button className="primary-button" onClick={() => void handleExplain(selectedEventId)} disabled={!selectedEventId}>
-              Generate Insight
-            </button>
           </div>
         </section>
 
-        <section className="broadcast-panel">
-          {errorMessage ? (
-            <StateNotice title="System Notice" message={errorMessage} tone="error" />
-          ) : null}
-          {isLoading ? (
-            <StateNotice
-              title="Loading Broadcast"
-              message="Fetching match context, viewer profile, and event engine state."
-            />
-          ) : null}
+        <section className="broadcast-stage-shell">
+          {errorMessage ? <StateNotice title="System Notice" message={errorMessage} tone="error" /> : null}
+          {isLoading ? <StateNotice title="Loading Broadcast" message="Fetching match context and clip state." /> : null}
+
           <MatchStage
             match={matches[0]}
             activeEvent={selectedEvent}
-            queueLength={queuedEventIds.length}
-            isAutoRunning={isAutoRunning}
             liveMinute={liveMinute}
             liveScore={liveScore}
             videoUrl={activeVideo ? apiAssetUrl(activeVideo.video_url) : undefined}
             videoTitle={activeVideo?.filename}
-            videoEventCount={activeVideo?.event_count}
             timelineSource={activeVideo?.timeline_source}
+            videoCurrentTime={videoCurrentTime}
+            videoDuration={videoDuration}
+            isVideoPlaying={isVideoPlaying}
+            onTogglePlayback={() => setIsVideoPlaying((current) => !current)}
+            onVideoSeek={handleVideoSeek}
             onVideoLoadedMetadata={handleAnalyzeVideo}
             onVideoTimeUpdate={handleVideoTimeUpdate}
+            onVideoPlayStateChange={setIsVideoPlaying}
           />
-          <InsightOverlay insight={activeInsight} />
+
+          <InsightOverlay
+            insight={activeInsight}
+            event={selectedEvent}
+            isOpen={isInsightDrawerOpen}
+            onOpen={() => setIsInsightDrawerOpen(true)}
+            onClose={() => setIsInsightDrawerOpen(false)}
+            onDismiss={() => {
+              setActiveInsight(null);
+              setIsInsightDrawerOpen(false);
+            }}
+          />
         </section>
 
-        <section className="sidebar-panel">
-          <h2>Live Event Engine</h2>
-          <p className="sidebar-copy">
-            Each event follows the official rulebook in the event engine spec, including timing, silence, confidence,
-            and prompt-template mapping.
-          </p>
+        <section className="broadcast-moments">
+          <div className="moments-header">
+            <div>
+              <p className="section-label">Moments</p>
+              <h2>Key moments worth explaining</h2>
+            </div>
+            <button className="primary-button" onClick={() => void handleExplain(selectedEventId, { openDrawer: true })} disabled={!selectedEventId}>
+              Open Match Insight
+            </button>
+          </div>
+
           {!isLoading && events.length === 0 ? (
-            <StateNotice title="No Events" message="No seeded events are available for the active match yet." />
+            <StateNotice title="No Events Yet" message="Upload a clip or wait for AI analysis to find moments worth explaining." />
           ) : null}
-          <ReplaySpotlight event={selectedEvent} />
-          <InsightHistory history={insightHistory} onSelect={(eventId) => void handleExplain(eventId)} />
+
           <EventTimeline
             events={events}
             selectedEventId={selectedEventId}
-            queuedEventIds={queuedEventIds}
-            onExplain={handleExplain}
+            queuedEventIds={videoTriggeredEventIds}
+            onExplain={handleSelectEvent}
           />
         </section>
       </main>

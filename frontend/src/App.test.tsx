@@ -322,13 +322,12 @@ vi.stubGlobal(
 describe("App", () => {
   it("renders the main broadcast framing", async () => {
     render(<App />);
-    expect(await screen.findByText(/Explain the match/i)).toBeInTheDocument();
-    expect(screen.getByText(/Live Event Engine/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Start Auto-Run/i })).toBeInTheDocument();
-    expect(screen.getByText(/Video Overlay Studio/i)).toBeInTheDocument();
-    expect(screen.getByText(/Judge Demo Flow/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Keep the match front and center/i)).toBeInTheDocument();
+    expect(screen.getByText(/Broadcast clip/i)).toBeInTheDocument();
+    expect(screen.getByText(/Key moments worth explaining/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Open Match Insight/i })).toBeInTheDocument();
     expect(screen.getByText(/Service Ready/i)).toBeInTheDocument();
-    expect(screen.getByText(/Insight History/i)).toBeInTheDocument();
-    expect(screen.getByText(/System status at a glance/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /new fan/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Large text/i)).toBeInTheDocument();
   });
 });

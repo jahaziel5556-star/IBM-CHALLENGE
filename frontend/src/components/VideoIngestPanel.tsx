@@ -25,7 +25,7 @@ export function VideoIngestPanel({ activeVideo, isUploading, isAnalyzing, onUplo
     <form className="video-ingest" onSubmit={handleSubmit}>
       <div>
         <p className="section-label">Match Clip</p>
-        <h2>Video Overlay Studio</h2>
+        <h2>Broadcast clip</h2>
       </div>
 
       <label className="file-drop">
