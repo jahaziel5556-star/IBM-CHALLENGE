@@ -34,6 +34,12 @@ Run:
 .\scripts\verify-watsonx-live.ps1
 ```
 
+For a fuller diagnostic that also lists visible WML or watsonx runtime service instances without printing secrets, run:
+
+```powershell
+py .\scripts\diagnose-ibm-wml-runtime.py
+```
+
 The verifier now checks three things:
 
 - IAM token can be issued from the API key

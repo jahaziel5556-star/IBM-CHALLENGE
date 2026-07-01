@@ -26,6 +26,8 @@ $filesToCopy = @(
     "scripts\launch-docker-setup-admin.cmd",
     "scripts\finalize-docker-verification.ps1",
     "scripts\verify-release-readiness.ps1",
+    "scripts\diagnose-ibm-wml-runtime.py",
+    "scripts\verify_watsonx_helpers.py",
     "scripts\verify-watsonx-live.ps1",
     "scripts\verify-ibm-free-tier.md"
 )

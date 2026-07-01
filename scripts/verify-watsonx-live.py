@@ -7,10 +7,10 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
-
-import httpx
 
 from app.core.config import settings
 from app.database.init_db import initialize_database
@@ -20,6 +20,7 @@ from app.services.ibm_service import GraniteService
 from app.services.match_service import MatchService
 from app.services.profile_service import ProfileService
 from app.schemas.explain import ExplainRequest
+from scripts.verify_watsonx_helpers import list_chat_models
 
 
 def main() -> int:
@@ -84,24 +85,6 @@ def main() -> int:
         )
     )
     return 0
-
-
-def list_chat_models(token: str) -> list[str]:
-    response = httpx.get(
-        f"{settings.ibm_watsonx_url}/ml/v1/foundation_model_specs",
-        params={"version": settings.ibm_watsonx_api_version, "filters": "function_text_chat"},
-        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
-        timeout=settings.ibm_watsonx_timeout_seconds,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    resources = payload.get("resources", [])
-    return [
-        item.get("model_id") or item.get("id") or item.get("name")
-        for item in resources
-        if item.get("model_id") or item.get("id") or item.get("name")
-    ]
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

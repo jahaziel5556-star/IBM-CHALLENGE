@@ -117,10 +117,16 @@ That one command runs:
 - frontend unit tests
 - frontend production build
 - Playwright end-to-end demo validation
-- live watsonx verification
+- IBM WML runtime diagnostic
 - demo bundle packaging
 
 This is the recommended submission route when Docker is unavailable on the workstation.
+
+To require live Granite generation as a hard gate after IBM project association is fixed:
+
+```powershell
+.\scripts\verify-release-readiness.ps1 -RequireLiveWatsonx
+```
 
 ## MP4 Overlay Demo
 
@@ -131,6 +137,12 @@ Without a sidecar timeline, the backend now samples the MP4 with OpenCV, extract
 Uploaded clips stay local under `backend/uploads/` and are ignored by Git.
 
 For live Granite event selection, the IBM project must be associated with a Watson Machine Learning service instance. `.\scripts\verify-watsonx-live.ps1` now performs a strict text-chat call and will fail if IBM returns `no_associated_service_instance_error`.
+
+To diagnose the current IBM runtime state:
+
+```powershell
+py .\scripts\diagnose-ibm-wml-runtime.py
+```
 
 ## How The AI Decides To Speak
 

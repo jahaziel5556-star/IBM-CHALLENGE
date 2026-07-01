@@ -31,13 +31,15 @@ Show that MatchMind One improves understanding without interrupting the live foo
 
 ## Demo Runtime
 
-- Rapid submission verification: `.\scripts\verify-release-readiness.ps1`
+- Rapid app submission verification: `.\scripts\verify-release-readiness.ps1`
+- Strict live Granite verification after IBM WML association: `.\scripts\verify-release-readiness.ps1 -RequireLiveWatsonx`
 - Frontend: `cd frontend && npm run dev`
 - Backend: `cd backend && .venv\Scripts\activate && uvicorn app.main:app --reload`
 - Browser validation: `cd frontend && npm run test:e2e`
 - MP4 overlay demo: upload a `.mp4` in the Video Overlay Studio, optionally with `assets/sample-video-events.json` as the event timeline
 - Raw MP4 analysis: omit the JSON file to let OpenCV sample video frames and Granite select event candidates from the visual observations
 - Live watsonx validation: `.\scripts\verify-watsonx-live.ps1`
+- IBM runtime diagnostic: `py .\scripts\diagnose-ibm-wml-runtime.py`
 - CI validation: GitHub Actions runs the same demo-flow verification on pushes and pull requests
 - Demo bundle packaging: `.\scripts\package-demo-bundle.ps1`
 
