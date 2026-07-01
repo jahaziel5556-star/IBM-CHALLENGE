@@ -29,6 +29,7 @@ Show that MatchMind One improves understanding without interrupting the live foo
 
 ## Demo Runtime
 
+- Rapid submission verification: `.\scripts\verify-release-readiness.ps1`
 - Frontend: `cd frontend && npm run dev`
 - Backend: `cd backend && .venv\Scripts\activate && uvicorn app.main:app --reload`
 - Browser validation: `cd frontend && npm run test:e2e`
@@ -44,3 +45,4 @@ Show that MatchMind One improves understanding without interrupting the live foo
 - Replay window and evidence improve trust.
 - The E2E demo-flow test passes against the local stack.
 - A shareable demo bundle can be generated from the current commit.
+- The full non-Docker release-readiness script passes on the local machine.

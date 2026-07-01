@@ -103,6 +103,25 @@ The repository default model is `ibm/granite-3-8b-instruct`, which is chat-capab
 - Browser-level demo verification passes with `npm run test:e2e`
 - GitHub Actions can run the same local validation path on pushes and pull requests
 
+## Rapid Submission Path
+
+If you need a verified deliverable without Docker, this is the primary fast path:
+
+```powershell
+.\scripts\verify-release-readiness.ps1
+```
+
+That one command runs:
+
+- backend tests
+- frontend unit tests
+- frontend production build
+- Playwright end-to-end demo validation
+- live watsonx verification
+- demo bundle packaging
+
+This is the recommended submission route when Docker is unavailable on the workstation.
+
 ## GitHub CI
 
 The repository now includes [`.github/workflows/ci.yml`](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHALLENGE/.github/workflows/ci.yml) for:

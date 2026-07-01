@@ -8,6 +8,7 @@ This runbook packages the current deployment guidance into one place for local d
 
 ### Local development
 
+- Rapid release verification: `.\scripts\verify-release-readiness.ps1`
 - Frontend: `cd frontend && npm run dev`
 - Backend: `cd backend && .venv\Scripts\activate && uvicorn app.main:app --reload`
 - Browser validation: `cd frontend && npm run test:e2e`
@@ -71,11 +72,12 @@ The repository includes [ci.yml](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHAL
 
 ## Release Checklist
 
-- Run `py -m pytest`
-- Run `cd frontend && npm run test`
-- Run `cd frontend && npm run build`
-- Run `cd frontend && npm run test:e2e`
-- Run `.\scripts\verify-watsonx-live.ps1` when live IBM credentials are configured
+- Preferred fast path: run `.\scripts\verify-release-readiness.ps1`
+- Or run `py -m pytest`
+- Or run `cd frontend && npm run test`
+- Or run `cd frontend && npm run build`
+- Or run `cd frontend && npm run test:e2e`
+- Or run `.\scripts\verify-watsonx-live.ps1` when live IBM credentials are configured
 - Run `.\scripts\verify-docker-prereqs.ps1` before attempting Docker Compose validation on Windows
 - If Docker prerequisites are missing on Windows, run `.\scripts\enable-docker-runtime-prereqs.ps1` as Administrator and reboot if prompted
 - Run `.\scripts\verify-compose-stack.ps1` once Docker Desktop is healthy to verify the containerized stack
