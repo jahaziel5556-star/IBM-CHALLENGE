@@ -4,17 +4,17 @@ type EventTimelineProps = {
   events: MatchEvent[];
   selectedEventId: string;
   queuedEventIds: string[];
-  onExplain: (eventId: string) => void | Promise<void>;
+  onSelect: (eventId: string) => void | Promise<void>;
 };
 
-export function EventTimeline({ events, selectedEventId, queuedEventIds, onExplain }: EventTimelineProps) {
+export function EventTimeline({ events, selectedEventId, queuedEventIds, onSelect }: EventTimelineProps) {
   return (
     <div className="timeline-list">
       {events.map((event) => (
         <button
           key={event.id}
           className={event.id === selectedEventId ? "timeline-card timeline-card-active" : "timeline-card"}
-          onClick={() => void onExplain(event.id)}
+          onClick={() => void onSelect(event.id)}
         >
           <div className="timeline-minute">{event.minute}'</div>
           <div className="timeline-copy">

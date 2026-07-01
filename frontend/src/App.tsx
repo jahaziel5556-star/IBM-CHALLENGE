@@ -23,6 +23,21 @@ import type {
 } from "./types/domain";
 
 const profiles: ProfileId[] = ["new_fan", "casual_viewer", "analyst", "child", "accessibility"];
+const EXPLAINABLE_EVENT_TYPES = new Set([
+  "goal_disallowed",
+  "offside",
+  "penalty",
+  "no_penalty",
+  "red_card",
+  "yellow_card",
+  "var_review",
+  "momentum_shift",
+  "tactical_formation_change",
+  "defensive_block_change",
+  "counterattack",
+  "dangerous_attack",
+  "substitution",
+]);
 
 function findClosestVideoEvent(events: MatchEvent[], seconds: number) {
   const timedEvents = events
@@ -35,6 +50,14 @@ function findClosestVideoEvent(events: MatchEvent[], seconds: number) {
 
   const passedEvent = [...timedEvents].reverse().find((event) => Number(event.timestamp_seconds) <= seconds + 0.4);
   return passedEvent ?? timedEvents[0];
+}
+
+function shouldOfferInsight(event: MatchEvent | undefined) {
+  if (!event || event.silent_recommended) {
+    return false;
+  }
+
+  return event.rule.priority >= 80 || EXPLAINABLE_EVENT_TYPES.has(event.type);
 }
 
 export default function App() {
@@ -67,6 +90,7 @@ export default function App() {
   const [videos, setVideos] = useState<VideoAsset[]>([]);
   const [activeVideo, setActiveVideo] = useState<VideoAsset | null>(null);
   const [isInsightDrawerOpen, setIsInsightDrawerOpen] = useState(false);
+  const [isInsightSuggested, setIsInsightSuggested] = useState(false);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -132,7 +156,8 @@ export default function App() {
         setLastExplainedMinute(event.minute);
       }
       setActiveInsight(insight);
-      setIsInsightDrawerOpen(options?.openDrawer ?? !options?.fromVideoRun);
+      setIsInsightDrawerOpen(Boolean(options?.openDrawer));
+      setIsInsightSuggested(Boolean(options?.fromVideoRun));
       setErrorMessage("");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Insight generation failed.");
@@ -170,6 +195,7 @@ export default function App() {
       setActiveVideo(uploadedVideo);
       setActiveInsight(null);
       setIsInsightDrawerOpen(false);
+      setIsInsightSuggested(false);
       setVideoTriggeredEventIds([]);
       setVideoCurrentTime(0);
       setVideoDuration(0);
@@ -224,6 +250,7 @@ export default function App() {
     setIsVideoPlaying(false);
     setActiveInsight(null);
     setIsInsightDrawerOpen(false);
+    setIsInsightSuggested(false);
 
     const timedEvents = events.filter((event) => event.video_id === activeVideo?.id && typeof event.timestamp_seconds === "number");
     const closestEvent = findClosestVideoEvent(timedEvents, seconds);
@@ -267,7 +294,7 @@ export default function App() {
       .filter((event) => typeof event.timestamp_seconds === "number")
       .filter((event) => Number(event.timestamp_seconds) <= currentTime + 0.4)
       .filter((event) => !videoTriggeredEventIds.includes(event.id))
-      .filter((event) => !event.silent_recommended)
+      .filter((event) => shouldOfferInsight(event))
       .sort((left, right) => Number(left.timestamp_seconds) - Number(right.timestamp_seconds))[0];
 
     if (!dueEvent) {
@@ -283,10 +310,34 @@ export default function App() {
     if (event && typeof event.timestamp_seconds === "number") {
       handleVideoSeek(Number(event.timestamp_seconds));
     }
-    void handleExplain(eventId, { openDrawer: true });
+    setSelectedEventId(eventId);
+    setLastExplainedMinute(event?.minute ?? null);
+    setIsInsightDrawerOpen(false);
+    setIsInsightSuggested(false);
+
+    if (!shouldOfferInsight(event)) {
+      setActiveInsight(null);
+    }
+  }
+
+  function handleOpenInsightRequest() {
+    const event = events.find((item) => item.id === selectedEventId);
+    if (!event || !shouldOfferInsight(event)) {
+      return;
+    }
+
+    if (activeInsight?.event_id === selectedEventId) {
+      setIsInsightDrawerOpen(true);
+      setIsInsightSuggested(false);
+      return;
+    }
+
+    void handleExplain(selectedEventId, { openDrawer: true });
   }
 
   const selectedEvent = events.find((event) => event.id === selectedEventId);
+  const explainableEvents = events.filter((event) => shouldOfferInsight(event));
+  const canOpenInsight = shouldOfferInsight(selectedEvent);
   const liveMinute = selectedEvent?.minute ?? lastExplainedMinute ?? 1;
   const liveScore = events
     .filter((event) => event.type === "goal" && event.minute <= liveMinute)
@@ -369,12 +420,15 @@ export default function App() {
           <InsightOverlay
             insight={activeInsight}
             event={selectedEvent}
+            canRequestInsight={canOpenInsight}
             isOpen={isInsightDrawerOpen}
-            onOpen={() => setIsInsightDrawerOpen(true)}
+            isSuggested={isInsightSuggested}
+            onOpen={handleOpenInsightRequest}
             onClose={() => setIsInsightDrawerOpen(false)}
             onDismiss={() => {
               setActiveInsight(null);
               setIsInsightDrawerOpen(false);
+              setIsInsightSuggested(false);
             }}
           />
         </section>
@@ -385,20 +439,20 @@ export default function App() {
               <p className="section-label">Moments</p>
               <h2>Key moments worth explaining</h2>
             </div>
-            <button className="primary-button" onClick={() => void handleExplain(selectedEventId, { openDrawer: true })} disabled={!selectedEventId}>
+            <button className="secondary-button" onClick={handleOpenInsightRequest} disabled={!selectedEventId || !canOpenInsight}>
               Open Match Insight
             </button>
           </div>
 
-          {!isLoading && events.length === 0 ? (
+          {!isLoading && explainableEvents.length === 0 ? (
             <StateNotice title="No Events Yet" message="Upload a clip or wait for AI analysis to find moments worth explaining." />
           ) : null}
 
           <EventTimeline
-            events={events}
+            events={explainableEvents}
             selectedEventId={selectedEventId}
             queuedEventIds={videoTriggeredEventIds}
-            onExplain={handleSelectEvent}
+            onSelect={handleSelectEvent}
           />
         </section>
       </main>

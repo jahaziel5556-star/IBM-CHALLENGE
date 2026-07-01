@@ -3,33 +3,48 @@ import type { ExplainResponse, MatchEvent } from "../types/domain";
 type InsightOverlayProps = {
   insight: ExplainResponse | null;
   event?: MatchEvent;
+  canRequestInsight: boolean;
   isOpen: boolean;
+  isSuggested: boolean;
   onOpen: () => void;
   onClose: () => void;
   onDismiss: () => void;
 };
 
-export function InsightOverlay({ insight, event, isOpen, onOpen, onClose, onDismiss }: InsightOverlayProps) {
-  if (!insight) {
+export function InsightOverlay({
+  insight,
+  event,
+  canRequestInsight,
+  isOpen,
+  isSuggested,
+  onOpen,
+  onClose,
+  onDismiss,
+}: InsightOverlayProps) {
+  if (!insight && !canRequestInsight) {
     return null;
   }
 
   return (
     <>
       {!isOpen ? (
-        <button className="insight-bubble" onClick={onOpen} aria-label="Open Match Insights">
-          <span className="insight-bubble-icon">i</span>
-          <span className="insight-bubble-copy">
-            <strong>Match Insights</strong>
-            <span>{insight.headline}</span>
-          </span>
-          <span className="insight-bubble-action">View</span>
-        </button>
+        <div className={isSuggested ? "insight-prompt insight-prompt-suggested" : "insight-prompt"}>
+          <button className="insight-fab" onClick={onOpen} aria-label="Open Match Insights">
+            i
+          </button>
+          {isSuggested && insight ? (
+            <button className="insight-nudge" onClick={onOpen}>
+              <strong>Need an explanation?</strong>
+              <span>{insight.headline}</span>
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {isOpen ? <button className="insight-scrim" onClick={onClose} aria-label="Close Match Insights panel" /> : null}
 
-      <aside className={isOpen ? "insight-drawer insight-drawer-open" : "insight-drawer"} aria-live="polite">
+      {insight ? (
+        <aside className={isOpen ? "insight-drawer insight-drawer-open" : "insight-drawer"} aria-live="polite">
         <div className="insight-drawer-header">
           <div>
             <p className="overlay-kicker">Match Insights</p>
@@ -53,7 +68,7 @@ export function InsightOverlay({ insight, event, isOpen, onOpen, onClose, onDism
         </div>
 
         <div className="insight-drawer-section">
-          <p className="insight-drawer-label">Why now</p>
+          <p className="insight-drawer-label">Why this was surfaced</p>
           <p className="insight-drawer-body">{insight.why_now}</p>
         </div>
 
@@ -86,7 +101,8 @@ export function InsightOverlay({ insight, event, isOpen, onOpen, onClose, onDism
             Dismiss
           </button>
         </div>
-      </aside>
+        </aside>
+      ) : null}
     </>
   );
 }

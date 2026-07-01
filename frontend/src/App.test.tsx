@@ -325,7 +325,7 @@ describe("App", () => {
     expect(await screen.findByText(/Keep the match front and center/i)).toBeInTheDocument();
     expect(screen.getByText(/Broadcast clip/i)).toBeInTheDocument();
     expect(screen.getByText(/Key moments worth explaining/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Open Match Insight/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Open Match Insight$/i })).toBeInTheDocument();
     expect(screen.getByText(/Service Ready/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /new fan/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Large text/i)).toBeInTheDocument();
