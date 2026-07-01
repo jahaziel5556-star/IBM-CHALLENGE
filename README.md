@@ -130,3 +130,13 @@ To generate a judge-ready bundle from the current repo state:
 ```
 
 This writes a zip archive under `artifacts/` with the key docs, run scripts, verification helpers, and a manifest linked to the current commit.
+
+## Docker Prereq Check
+
+On this Windows workstation, the remaining deployment blocker is the Docker Desktop runtime, not the application code. To diagnose the local Docker prerequisites:
+
+```powershell
+.\scripts\verify-docker-prereqs.ps1
+```
+
+This reports whether the Docker CLI is present, whether the Docker daemon is reachable, whether the Docker Desktop service is running, and whether WSL is installed.

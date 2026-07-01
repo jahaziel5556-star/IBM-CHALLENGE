@@ -32,6 +32,8 @@ Notes:
 - The backend container runs `alembic upgrade head` on startup.
 - The Compose file currently defaults to `IBM_WATSONX_USE_MOCK=true`.
 - To switch the Compose stack to live watsonx, inject the IBM env vars securely instead of editing committed files.
+- On Windows with Docker Desktop, the Linux engine also depends on WSL being installed and available.
+- You can diagnose the local prerequisites with `.\scripts\verify-docker-prereqs.ps1`.
 
 ### GitHub Actions CI
 
@@ -56,7 +58,7 @@ The repository includes [ci.yml](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHAL
 - On June 30, 2026, live IAM token retrieval succeeded for the configured IBM project.
 - On June 30, 2026, the `us-south` model inventory exposed `ibm/granite-3-8b-instruct` for chat.
 - On June 30, 2026, `granite-3-2b-instruct` returned `403 Forbidden` and was replaced as the repository default.
-- On June 30, 2026, the local workstation still did not have the `docker` CLI installed, so Docker runtime validation remained pending external machine setup.
+- On June 30, 2026, the local workstation had Docker Desktop files present, but the Docker daemon could not start because WSL was not installed and the Docker Desktop service was not available to this non-elevated session.
 
 ## Release Checklist
 
@@ -65,6 +67,7 @@ The repository includes [ci.yml](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHAL
 - Run `cd frontend && npm run build`
 - Run `cd frontend && npm run test:e2e`
 - Run `.\scripts\verify-watsonx-live.ps1` when live IBM credentials are configured
+- Run `.\scripts\verify-docker-prereqs.ps1` before attempting Docker Compose validation on Windows
 - Package a demo handoff with `.\scripts\package-demo-bundle.ps1`
 
 ## Demo Bundle Output
