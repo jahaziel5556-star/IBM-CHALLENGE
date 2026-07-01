@@ -13,7 +13,13 @@ export function EventTimeline({ events, selectedEventId, queuedEventIds, onSelec
       {events.map((event) => (
         <button
           key={event.id}
-          className={event.id === selectedEventId ? "timeline-card timeline-card-active" : "timeline-card"}
+          className={
+            event.id === selectedEventId
+              ? "timeline-card timeline-card-active"
+              : queuedEventIds.includes(event.id)
+                ? "timeline-card timeline-card-queued"
+                : "timeline-card"
+          }
           onClick={() => void onSelect(event.id)}
         >
           <div className="timeline-minute">{event.minute}'</div>

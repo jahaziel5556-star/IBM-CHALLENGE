@@ -108,7 +108,7 @@ export function MatchStage({
             {transientInsight ? (
               <aside className="video-insight-card" aria-live="polite">
                 <div className="video-insight-topline">
-                  <span>Match Insights</span>
+                  <span>Auto insight</span>
                   <strong>{transientInsight.confidence}</strong>
                 </div>
                 <h3>{transientInsight.headline}</h3>

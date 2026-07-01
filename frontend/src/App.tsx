@@ -164,11 +164,21 @@ export default function App() {
   const [shownEventIds, setShownEventIds] = useState<string[]>([]);
   const [pendingOverlayEventIds, setPendingOverlayEventIds] = useState<string[]>([]);
   const lastPlaybackTimeRef = useRef(0);
+  const shownEventIdsRef = useRef<string[]>([]);
+  const pendingOverlayEventIdsRef = useRef<string[]>([]);
 
   const explainableEvents = useMemo(() => events.filter((event) => shouldOfferInsight(event)), [events]);
   const autoOverlayEvents = useMemo(() => explainableEvents.filter((event) => shouldAutoOverlay(event)), [explainableEvents]);
   const timedAutoOverlayEvents = useMemo(() => sortTimedEvents(autoOverlayEvents), [autoOverlayEvents]);
   const selectedEvent = events.find((event) => event.id === selectedEventId);
+
+  useEffect(() => {
+    shownEventIdsRef.current = shownEventIds;
+  }, [shownEventIds]);
+
+  useEffect(() => {
+    pendingOverlayEventIdsRef.current = pendingOverlayEventIds;
+  }, [pendingOverlayEventIds]);
 
   useEffect(() => {
     async function loadApp() {
@@ -298,8 +308,16 @@ export default function App() {
       if (options?.showTransient) {
         setTransientInsight(insight);
         setDrawerInsight((current) => (current?.event_id === eventId ? current : insight));
-        setPendingOverlayEventIds((current) => current.filter((queuedId) => queuedId !== eventId));
-        setShownEventIds((current) => [...new Set([...current, eventId])]);
+        setPendingOverlayEventIds((current) => {
+          const next = current.filter((queuedId) => queuedId !== eventId);
+          pendingOverlayEventIdsRef.current = next;
+          return next;
+        });
+        setShownEventIds((current) => {
+          const next = [...new Set([...current, eventId])];
+          shownEventIdsRef.current = next;
+          return next;
+        });
       }
 
       if (options?.speakAnswer && typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -401,6 +419,8 @@ export default function App() {
     const alreadyPast = timedAutoOverlayEvents
       .filter((event) => Number(event.timestamp_seconds) <= seconds + 0.05)
       .map((event) => event.id);
+    shownEventIdsRef.current = alreadyPast;
+    pendingOverlayEventIdsRef.current = [];
     setShownEventIds(alreadyPast);
     setPendingOverlayEventIds([]);
     setTransientInsight(null);
@@ -445,8 +465,8 @@ export default function App() {
     }
 
     const crossedEvents = timedAutoOverlayEvents
-      .filter((event) => !shownEventIds.includes(event.id))
-      .filter((event) => !pendingOverlayEventIds.includes(event.id))
+      .filter((event) => !shownEventIdsRef.current.includes(event.id))
+      .filter((event) => !pendingOverlayEventIdsRef.current.includes(event.id))
       .filter((event) => {
         const timestamp = Number(event.timestamp_seconds);
         return timestamp > previousTime && timestamp <= currentTime;
@@ -454,7 +474,11 @@ export default function App() {
       .map((event) => event.id);
 
     if (crossedEvents.length > 0) {
-      setPendingOverlayEventIds((current) => [...current, ...crossedEvents]);
+      setPendingOverlayEventIds((current) => {
+        const next = [...current, ...crossedEvents];
+        pendingOverlayEventIdsRef.current = next;
+        return next;
+      });
     }
   }
 
