@@ -5,6 +5,7 @@ import re
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
+from threading import Lock, Thread
 from uuid import uuid4
 
 from fastapi import UploadFile
@@ -14,6 +15,10 @@ from app.services.video_analyzer import VideoAnalyzer
 
 
 class VideoService:
+    _analysis_threads: dict[str, Thread] = {}
+    _registry_lock = Lock()
+    _video_locks: dict[str, Lock] = {}
+
     def __init__(self) -> None:
         self.upload_root = self._resolve_upload_root()
         self.rules = self._load_rules()
@@ -25,6 +30,16 @@ class VideoService:
 
     def get_video(self, video_id: str) -> dict | None:
         return self._load_metadata(self._video_dir(video_id) / "metadata.json")
+
+    def get_analysis_status(self, video_id: str) -> dict:
+        metadata = self.get_video(video_id)
+        if not metadata:
+            raise ValueError("Video not found")
+        return {
+            "video": metadata,
+            "events": self.list_events(video_id),
+            "is_complete": metadata["analysis_status"] in {"events_ready", "cv_analysis_ready", "failed"},
+        }
 
     def create_video(self, *, video: UploadFile, event_payload: bytes | None = None) -> dict:
         filename = Path(video.filename or "match-clip.mp4").name
@@ -43,46 +58,58 @@ class VideoService:
         if events:
             self._write_events(video_id, events)
 
+        created_at = datetime.now(UTC).isoformat()
         metadata = {
             "id": video_id,
             "filename": filename,
             "video_url": f"/uploads/{video_id}/video.mp4",
             "event_count": len(events),
             "analysis_status": "events_ready" if events else "uploaded",
+            "analysis_phase": "sidecar_ready" if events else "uploaded",
+            "analysis_progress": 100 if events else 0,
+            "analysis_error": None,
             "timeline_source": "sidecar_json" if events else "none",
             "analysis_observation_count": 0,
-            "created_at": datetime.now(UTC).isoformat(),
+            "created_at": created_at,
+            "analysis_started_at": None,
+            "analysis_completed_at": created_at if events else None,
         }
         self._write_metadata(video_id, metadata)
         return metadata
 
-    def analyze_video(self, video_id: str, *, duration_seconds: float | None = None) -> dict:
+    def start_analysis(self, video_id: str, *, duration_seconds: float | None = None) -> dict:
         metadata = self.get_video(video_id)
         if not metadata:
             raise ValueError("Video not found")
 
-        existing_events = self.list_events(video_id)
-        if existing_events:
-            return {"video": metadata, "events": existing_events}
+        if metadata["analysis_status"] in {"events_ready", "cv_analysis_ready"} and self.list_events(video_id):
+            return self.get_analysis_status(video_id)
 
-        video_path = self._video_dir(video_id) / "video.mp4"
-        analysis = VideoAnalyzer().analyze(
-            video_path=video_path,
-            video_id=video_id,
-            duration_seconds=duration_seconds,
-        )
-        analyzed_events = [
-            self._normalize_event(item, index=index, video_id=video_id)
-            for index, item in enumerate(analysis["events"], start=1)
-        ]
-        self._write_events(video_id, analyzed_events)
-        self._write_analysis(video_id, analysis)
-        metadata["event_count"] = len(analyzed_events)
-        metadata["analysis_status"] = "cv_analysis_ready"
-        metadata["timeline_source"] = analysis["analysis_mode"]
-        metadata["analysis_observation_count"] = len(analysis["observations"])
-        self._write_metadata(video_id, metadata)
-        return {"video": metadata, "events": analyzed_events}
+        with self._registry_lock:
+            existing = self._analysis_threads.get(video_id)
+            if existing and existing.is_alive():
+                return self.get_analysis_status(video_id)
+
+            metadata["analysis_status"] = "analyzing"
+            metadata["analysis_phase"] = "queued"
+            metadata["analysis_progress"] = max(int(metadata.get("analysis_progress", 0)), 1)
+            metadata["analysis_error"] = None
+            metadata["analysis_started_at"] = metadata.get("analysis_started_at") or datetime.now(UTC).isoformat()
+            metadata["analysis_completed_at"] = None
+            self._write_metadata(video_id, metadata)
+
+            worker = Thread(
+                target=self._run_analysis_job,
+                kwargs={"video_id": video_id, "duration_seconds": duration_seconds},
+                daemon=True,
+            )
+            self._analysis_threads[video_id] = worker
+            worker.start()
+
+        return self.get_analysis_status(video_id)
+
+    def analyze_video(self, video_id: str, *, duration_seconds: float | None = None) -> dict:
+        return self._execute_analysis(video_id, duration_seconds=duration_seconds)
 
     def list_events(self, video_id: str) -> list[dict]:
         events_path = self._video_dir(video_id) / "events.json"
@@ -99,6 +126,93 @@ class VideoService:
                     if event["id"] == event_id:
                         return event
         return None
+
+    def _run_analysis_job(self, *, video_id: str, duration_seconds: float | None) -> None:
+        lock = self._lock_for_video(video_id)
+        with lock:
+            try:
+                self._execute_analysis(video_id, duration_seconds=duration_seconds)
+            except Exception as exc:
+                metadata = self.get_video(video_id)
+                if metadata:
+                    metadata["analysis_status"] = "failed"
+                    metadata["analysis_phase"] = "failed"
+                    metadata["analysis_error"] = str(exc)
+                    metadata["analysis_completed_at"] = datetime.now(UTC).isoformat()
+                    self._write_metadata(video_id, metadata)
+            finally:
+                with self._registry_lock:
+                    self._analysis_threads.pop(video_id, None)
+
+    def _execute_analysis(self, video_id: str, *, duration_seconds: float | None = None) -> dict:
+        metadata = self.get_video(video_id)
+        if not metadata:
+            raise ValueError("Video not found")
+
+        existing_events = self.list_events(video_id)
+        if existing_events and metadata["analysis_status"] in {"events_ready", "cv_analysis_ready"}:
+            return {"video": metadata, "events": existing_events}
+
+        video_path = self._video_dir(video_id) / "video.mp4"
+
+        def handle_progress(update: dict) -> None:
+            current_metadata = self.get_video(video_id) or metadata.copy()
+            partial_events = [
+                self._normalize_event(item, index=index, video_id=video_id)
+                for index, item in enumerate(update.get("events", []), start=1)
+            ]
+            if partial_events:
+                self._write_events(video_id, partial_events)
+
+            current_metadata["event_count"] = len(partial_events)
+            current_metadata["analysis_status"] = "analyzing" if update["phase"] != "complete" else "cv_analysis_ready"
+            current_metadata["analysis_phase"] = update["phase"]
+            current_metadata["analysis_progress"] = int(update["progress_percent"])
+            current_metadata["analysis_error"] = None
+            current_metadata["analysis_observation_count"] = int(update["observations_processed"])
+            current_metadata["timeline_source"] = update.get("analysis_mode", current_metadata.get("timeline_source", "none"))
+            current_metadata["analysis_started_at"] = current_metadata.get("analysis_started_at") or datetime.now(UTC).isoformat()
+            if update["phase"] == "complete":
+                current_metadata["analysis_completed_at"] = datetime.now(UTC).isoformat()
+            self._write_metadata(video_id, current_metadata)
+
+            if update.get("observations"):
+                self._write_analysis(
+                    video_id,
+                    {
+                        "events": partial_events,
+                        "observations": update["observations"],
+                        "metadata": {
+                            "sample_count": len(update["observations"]),
+                        },
+                        "analysis_mode": update.get("analysis_mode", "local_cv"),
+                    },
+                )
+
+        analysis = VideoAnalyzer().analyze_progressive(
+            video_path=video_path,
+            video_id=video_id,
+            duration_seconds=duration_seconds,
+            progress_callback=handle_progress,
+        )
+        analyzed_events = [
+            self._normalize_event(item, index=index, video_id=video_id)
+            for index, item in enumerate(analysis["events"], start=1)
+        ]
+        self._write_events(video_id, analyzed_events)
+        self._write_analysis(video_id, analysis)
+
+        metadata["event_count"] = len(analyzed_events)
+        metadata["analysis_status"] = "cv_analysis_ready"
+        metadata["analysis_phase"] = "complete"
+        metadata["analysis_progress"] = 100
+        metadata["analysis_error"] = None
+        metadata["timeline_source"] = analysis["analysis_mode"]
+        metadata["analysis_observation_count"] = len(analysis["observations"])
+        metadata["analysis_started_at"] = metadata.get("analysis_started_at") or datetime.now(UTC).isoformat()
+        metadata["analysis_completed_at"] = datetime.now(UTC).isoformat()
+        self._write_metadata(video_id, metadata)
+        return {"video": metadata, "events": analyzed_events}
 
     def _parse_event_payload(self, payload: bytes | None, *, video_id: str) -> list[dict]:
         if not payload:
@@ -158,22 +272,6 @@ class VideoService:
             },
         }
 
-    def _build_demo_timeline(self, *, video_id: str, duration_seconds: float | None) -> list[dict]:
-        data_path = Path(__file__).resolve().parents[1] / "data" / "events.json"
-        with data_path.open("r", encoding="utf-8") as file:
-            seed_events = json.load(file)
-
-        selected_ids = ["evt-highpress-12", "evt-offside-24", "evt-penalty-62", "evt-var-64", "evt-goal-81"]
-        selected_events = [event for event in seed_events if event["id"] in selected_ids]
-        duration = max(float(duration_seconds or 90), 30.0)
-        marks = [0.12, 0.28, 0.52, 0.62, 0.82]
-
-        demo_events = []
-        for index, (event, mark) in enumerate(zip(selected_events, marks, strict=False), start=1):
-            item = {**event, "id": f"{video_id}-demo-{index:03d}", "timestamp_seconds": round(duration * mark, 2)}
-            demo_events.append(self._normalize_event(item, index=index, video_id=video_id))
-        return demo_events
-
     def _load_rules(self) -> dict[str, dict]:
         rules_path = Path(__file__).resolve().parents[1] / "data" / "event_rules.json"
         with rules_path.open("r", encoding="utf-8") as file:
@@ -184,7 +282,17 @@ class VideoService:
         if not metadata_path.exists():
             return None
         with metadata_path.open("r", encoding="utf-8") as file:
-            return json.load(file)
+            metadata = json.load(file)
+        metadata.setdefault("analysis_phase", "complete" if metadata.get("event_count", 0) > 0 else "uploaded")
+        metadata.setdefault("analysis_progress", 100 if metadata.get("event_count", 0) > 0 else 0)
+        metadata.setdefault("analysis_error", None)
+        metadata.setdefault("analysis_observation_count", 0)
+        metadata.setdefault("analysis_started_at", None)
+        metadata.setdefault(
+            "analysis_completed_at",
+            metadata.get("created_at") if metadata.get("event_count", 0) > 0 else None,
+        )
+        return metadata
 
     def _write_metadata(self, video_id: str, metadata: dict) -> None:
         metadata_path = self._video_dir(video_id) / "metadata.json"
@@ -258,3 +366,9 @@ class VideoService:
             "no_penalty": "The referee decided the contact was not enough for a penalty.",
         }
         return simple_names.get(event_type, f"{team} did something important in this moment.")
+
+    def _lock_for_video(self, video_id: str) -> Lock:
+        with self._registry_lock:
+            if video_id not in self._video_locks:
+                self._video_locks[video_id] = Lock()
+            return self._video_locks[video_id]

@@ -72,14 +72,25 @@ export type VideoAsset = {
   video_url: string;
   event_count: number;
   analysis_status: string;
+  analysis_phase: string;
+  analysis_progress: number;
+  analysis_error?: string | null;
   timeline_source: string;
   analysis_observation_count: number;
   created_at: string;
+  analysis_started_at?: string | null;
+  analysis_completed_at?: string | null;
 };
 
 export type VideoAnalysisResponse = {
   video: VideoAsset;
   events: MatchEvent[];
+};
+
+export type VideoAnalysisStatus = {
+  video: VideoAsset;
+  events: MatchEvent[];
+  is_complete: boolean;
 };
 
 export type ProfileSettings = {

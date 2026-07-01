@@ -19,7 +19,7 @@ import type {
   ProfileId,
   ProfileSettings,
   SystemSummary,
-  VideoAnalysisResponse,
+  VideoAnalysisStatus,
   VideoAsset,
 } from "./types/domain";
 
@@ -124,6 +124,10 @@ function resolveVoiceEvent(question: string, events: MatchEvent[], selectedEvent
   return selectedEvent && shouldOfferInsight(selectedEvent) ? selectedEvent : explainable[0];
 }
 
+function isVideoAnalysisComplete(video: VideoAsset | null | undefined) {
+  return Boolean(video && ["events_ready", "cv_analysis_ready", "failed"].includes(video.analysis_status));
+}
+
 export default function App() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [events, setEvents] = useState<MatchEvent[]>([]);
@@ -207,6 +211,9 @@ export default function App() {
             const uploadedEvents = await apiGet<MatchEvent[]>(`/api/videos/${latestVideo.id}/events`);
             setEvents(uploadedEvents);
             setSelectedEventId(uploadedEvents[0]?.id ?? "");
+          } else if (!isVideoAnalysisComplete(latestVideo)) {
+            const analysisState = await apiPost<VideoAnalysisStatus>(`/api/videos/${latestVideo.id}/analysis/start`, {});
+            applyAnalysisState(analysisState);
           }
         } else if (loadedMatches[0]) {
           const primaryMatch = loadedMatches[0];
@@ -251,6 +258,28 @@ export default function App() {
     const nextEventId = pendingOverlayEventIds[0];
     void handleExplain(nextEventId, { fromVideoRun: true, showTransient: true });
   }, [pendingOverlayEventIds, transientInsight]);
+
+  useEffect(() => {
+    if (!activeVideo || isVideoAnalysisComplete(activeVideo)) {
+      return;
+    }
+
+    setIsAnalyzingVideo(true);
+    const interval = window.setInterval(() => {
+      void apiGet<VideoAnalysisStatus>(`/api/videos/${activeVideo.id}/analysis`)
+        .then((analysisState) => {
+          applyAnalysisState(analysisState);
+          if (analysisState.is_complete) {
+            setIsAnalyzingVideo(false);
+          }
+        })
+        .catch(() => {
+          setIsAnalyzingVideo(false);
+        });
+    }, 1200);
+
+    return () => window.clearInterval(interval);
+  }, [activeVideo?.id, activeVideo?.analysis_status]);
 
   useEffect(() => {
     function handleWindowKeydown(event: KeyboardEvent) {
@@ -331,6 +360,30 @@ export default function App() {
     }
   }
 
+  function applyAnalysisState(analysisState: VideoAnalysisStatus) {
+    setActiveVideo(analysisState.video);
+    setVideos((current) => [analysisState.video, ...current.filter((video) => video.id !== analysisState.video.id)]);
+    setEvents(analysisState.events);
+    setSelectedEventId((current) => {
+      if (analysisState.events.some((event) => event.id === current)) {
+        return current;
+      }
+      return analysisState.events[0]?.id ?? current;
+    });
+    if (analysisState.events[0]) {
+      setLastExplainedMinute((current) => current ?? analysisState.events[0].minute);
+    }
+    if (analysisState.is_complete) {
+      setIsAnalyzingVideo(false);
+    }
+  }
+
+  async function startRealtimeAnalysis(videoId: string) {
+    setIsAnalyzingVideo(true);
+    const analysisState = await apiPost<VideoAnalysisStatus>(`/api/videos/${videoId}/analysis/start`, {});
+    applyAnalysisState(analysisState);
+  }
+
   async function handleProfileChange(nextProfile: ProfileId) {
     setProfile(nextProfile);
     const nextSettings = { ...profileSettings, profile: nextProfile };
@@ -374,6 +427,7 @@ export default function App() {
       } else {
         setEvents([]);
         setSelectedEventId("");
+        await startRealtimeAnalysis(uploadedVideo.id);
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Video upload failed.");
@@ -389,30 +443,8 @@ export default function App() {
     setLastExplainedMinute(uploadedEvents[0]?.minute ?? null);
   }
 
-  async function handleAnalyzeVideo(duration: number) {
+  function handleVideoMetadataLoaded(duration: number) {
     setVideoDuration(duration);
-
-    if (!activeVideo || activeVideo.event_count > 0 || isAnalyzingVideo) {
-      return;
-    }
-
-    try {
-      setIsAnalyzingVideo(true);
-      const analysis = await apiPost<VideoAnalysisResponse>(`/api/videos/${activeVideo.id}/analyze`, {
-        duration_seconds: Number.isFinite(duration) ? duration : undefined,
-      });
-      setActiveVideo(analysis.video);
-      setVideos((current) => [analysis.video, ...current.filter((video) => video.id !== analysis.video.id)]);
-      setEvents(analysis.events);
-      setSelectedEventId(analysis.events[0]?.id ?? "");
-      setShownEventIds([]);
-      setPendingOverlayEventIds([]);
-      setErrorMessage("");
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Video analysis failed.");
-    } finally {
-      setIsAnalyzingVideo(false);
-    }
   }
 
   function resetPlaybackStateAt(seconds: number) {
@@ -624,7 +656,7 @@ export default function App() {
             onTogglePlayback={() => setIsVideoPlaying((current) => !current)}
             onVideoSeek={handleVideoSeek}
             onSkipBy={handleSkipBy}
-            onVideoLoadedMetadata={handleAnalyzeVideo}
+            onVideoLoadedMetadata={handleVideoMetadataLoaded}
             onVideoTimeUpdate={handleVideoTimeUpdate}
             onVideoPlayStateChange={setIsVideoPlaying}
           />

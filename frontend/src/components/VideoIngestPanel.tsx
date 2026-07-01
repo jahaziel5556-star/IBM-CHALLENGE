@@ -49,13 +49,14 @@ export function VideoIngestPanel({ activeVideo, isUploading, isAnalyzing, onUplo
       </label>
 
       <button className="primary-button" type="submit" disabled={!videoFile || isUploading || isAnalyzing}>
-        {isUploading ? "Uploading" : isAnalyzing ? "Analyzing" : "Load Clip"}
+        {isUploading ? "Uploading" : isAnalyzing ? "Analyzing Live" : "Load Clip"}
       </button>
 
       {activeVideo ? (
         <div className="video-status">
           <span>
-            {activeVideo.analysis_status.replace(/_/g, " ")}
+            {activeVideo.analysis_phase.replace(/_/g, " ")}
+            {activeVideo.analysis_status === "analyzing" ? ` ${activeVideo.analysis_progress}%` : ""}
             {activeVideo.timeline_source !== "none" ? ` | ${activeVideo.timeline_source.replace(/_/g, " ")}` : ""}
           </span>
           <strong>

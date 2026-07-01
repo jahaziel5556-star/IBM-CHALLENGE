@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 
 import cv2
@@ -175,3 +176,33 @@ def test_analyze_video_generates_demo_timeline(tmp_path, monkeypatch) -> None:
     assert len(payload["events"]) >= 3
     assert payload["events"][0]["timestamp_seconds"] > 0
     assert payload["events"][0]["analysis_source"] in {"local_cv", "granite_cv"}
+
+
+def test_progressive_analysis_status_updates(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
+    video_bytes = _make_test_mp4(tmp_path / "realtime-clip.mp4")
+    upload = client.post(
+        "/api/videos/upload",
+        files={"video": ("realtime-clip.mp4", video_bytes, "video/mp4")},
+    )
+    assert upload.status_code == 200
+
+    started = client.post(f"/api/videos/{upload.json()['id']}/analysis/start", json={})
+    assert started.status_code == 200
+    started_payload = started.json()
+    assert started_payload["video"]["analysis_status"] == "analyzing"
+
+    completed_payload = started_payload
+    for _ in range(30):
+        status = client.get(f"/api/videos/{upload.json()['id']}/analysis")
+        assert status.status_code == 200
+        completed_payload = status.json()
+        if completed_payload["is_complete"]:
+            break
+        time.sleep(0.1)
+
+    assert completed_payload["is_complete"] is True
+    assert completed_payload["video"]["analysis_progress"] == 100
+    assert completed_payload["video"]["analysis_phase"] == "complete"
+    assert completed_payload["video"]["event_count"] >= 1
+    assert len(completed_payload["events"]) >= 1

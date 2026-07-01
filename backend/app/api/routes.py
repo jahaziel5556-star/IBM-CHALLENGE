@@ -7,7 +7,7 @@ from app.schemas.demo import DemoScriptStep
 from app.schemas.profile import ProfileRequest, ProfileResponse, SettingsResponse
 from app.schemas.explain import ExplainRequest, ExplainResponse
 from app.schemas.system import SystemSummary
-from app.schemas.video import VideoAnalysisRequest, VideoAnalysisResponse, VideoAsset
+from app.schemas.video import VideoAnalysisRequest, VideoAnalysisResponse, VideoAnalysisStatus, VideoAsset
 from app.services.explanation_service import ExplanationService
 from app.services.match_service import MatchService
 from app.services.profile_service import ProfileService
@@ -131,6 +131,22 @@ def get_video(video_id: str) -> dict:
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
     return video
+
+
+@router.get("/api/videos/{video_id}/analysis", response_model=VideoAnalysisStatus)
+def get_video_analysis_status(video_id: str) -> dict:
+    try:
+        return VideoService().get_analysis_status(video_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/api/videos/{video_id}/analysis/start", response_model=VideoAnalysisStatus)
+def start_video_analysis(video_id: str, request: VideoAnalysisRequest | None = None) -> dict:
+    try:
+        return VideoService().start_analysis(video_id, duration_seconds=request.duration_seconds if request else None)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/api/videos/{video_id}/analyze", response_model=VideoAnalysisResponse)

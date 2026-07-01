@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 import cv2
 import numpy as np
@@ -33,12 +34,41 @@ class FrameObservation:
         }
 
 
+AnalysisProgressCallback = Callable[[dict], None]
+
+
 class VideoAnalyzer:
     def __init__(self, *, granite_service: GraniteService | None = None) -> None:
         self.granite_service = granite_service or GraniteService()
 
-    def analyze(self, *, video_path: Path, video_id: str, duration_seconds: float | None = None) -> dict:
-        observations, metadata = self._sample_video(video_path=video_path, requested_duration=duration_seconds)
+    def analyze(
+        self,
+        *,
+        video_path: Path,
+        video_id: str,
+        duration_seconds: float | None = None,
+    ) -> dict:
+        return self.analyze_progressive(
+            video_path=video_path,
+            video_id=video_id,
+            duration_seconds=duration_seconds,
+            progress_callback=None,
+        )
+
+    def analyze_progressive(
+        self,
+        *,
+        video_path: Path,
+        video_id: str,
+        duration_seconds: float | None = None,
+        progress_callback: AnalysisProgressCallback | None = None,
+    ) -> dict:
+        observations, metadata, progressive_events = self._sample_video_progressive(
+            video_path=video_path,
+            requested_duration=duration_seconds,
+            video_id=video_id,
+            progress_callback=progress_callback,
+        )
         if not observations:
             raise ValueError("No readable frames were found in the uploaded MP4.")
 
@@ -47,21 +77,58 @@ class VideoAnalyzer:
             metadata=metadata,
             video_id=video_id,
         )
-        granite_events = self._events_from_granite(
-            observations=observations,
+        local_events = self._merge_events(
+            progressive_events=progressive_events,
+            deterministic_events=deterministic_events,
             metadata=metadata,
-            video_id=video_id,
         )
-        events = granite_events or deterministic_events
+
+        if progress_callback:
+            progress_callback(
+                {
+                    "phase": "finalizing",
+                    "progress_percent": 88,
+                    "observations_processed": len(observations),
+                    "estimated_observations": len(observations),
+                    "events": local_events,
+                    "observations": [observation.to_prompt_dict() for observation in observations],
+                    "analysis_mode": "local_cv",
+                }
+            )
+
+        # Keep the live pipeline deterministic and fast enough for progressive UI updates.
+        # Granite remains part of explanation generation, but event timing here stays local-CV-first.
+        final_events = local_events
+        analysis_mode = "local_cv"
+
+        if progress_callback:
+            progress_callback(
+                {
+                    "phase": "complete",
+                    "progress_percent": 100,
+                    "observations_processed": len(observations),
+                    "estimated_observations": len(observations),
+                    "events": final_events,
+                    "observations": [observation.to_prompt_dict() for observation in observations],
+                    "analysis_mode": analysis_mode,
+                }
+            )
 
         return {
-            "events": events,
+            "events": final_events,
             "observations": [observation.to_prompt_dict() for observation in observations],
             "metadata": metadata,
-            "analysis_mode": "granite_cv" if granite_events else "local_cv",
+            "analysis_mode": analysis_mode,
         }
 
-    def _sample_video(self, *, video_path: Path, requested_duration: float | None) -> tuple[list[FrameObservation], dict]:
+    def _sample_video_progressive(
+        self,
+        *,
+        video_path: Path,
+        requested_duration: float | None,
+        video_id: str,
+        progress_callback: AnalysisProgressCallback | None,
+    ) -> tuple[list[FrameObservation], dict, list[dict]]:
         capture = cv2.VideoCapture(str(video_path))
         if not capture.isOpened():
             raise ValueError("Unable to open uploaded MP4 for frame analysis.")
@@ -80,10 +147,21 @@ class VideoAnalyzer:
         sample_interval = max(float(settings.video_analysis_sample_seconds), 1.0)
         sample_count = min(max(int(duration / sample_interval), settings.video_analysis_min_events), settings.video_analysis_max_samples)
         timestamps = np.linspace(min(sample_interval, duration * 0.2), max(duration - 0.25, sample_interval), num=sample_count)
+        metadata = {
+            "fps": round(fps, 3),
+            "frame_count": frame_count,
+            "width": width,
+            "height": height,
+            "duration_seconds": round(float(duration), 2),
+            "sample_count": int(len(timestamps)),
+        }
 
         previous_gray: np.ndarray | None = None
         observations: list[FrameObservation] = []
-        for timestamp in timestamps:
+        progressive_events: list[dict] = []
+        spacing_seconds = max(2.0, min(8.0, float(metadata["duration_seconds"]) / 8))
+
+        for sample_index, timestamp in enumerate(timestamps, start=1):
             capture.set(cv2.CAP_PROP_POS_MSEC, float(timestamp) * 1000)
             ok, frame = capture.read()
             if not ok or frame is None:
@@ -92,17 +170,34 @@ class VideoAnalyzer:
             observation = self._observe_frame(frame=frame, previous_gray=previous_gray, timestamp=float(timestamp))
             previous_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             observations.append(observation)
+            emitted = self._maybe_emit_progressive_event(
+                observation=observation,
+                existing_events=progressive_events,
+                spacing_seconds=spacing_seconds,
+                video_id=video_id,
+                index=len(progressive_events) + 1,
+                metadata=metadata,
+            )
+            if emitted:
+                progressive_events.append(emitted)
+                progressive_events.sort(key=lambda item: float(item["timestamp_seconds"]))
+
+            if progress_callback:
+                progress_callback(
+                    {
+                        "phase": "sampling",
+                        "progress_percent": max(6, min(74, round((sample_index / max(len(timestamps), 1)) * 74))),
+                        "observations_processed": len(observations),
+                        "estimated_observations": len(timestamps),
+                        "events": progressive_events,
+                        "observations": [item.to_prompt_dict() for item in observations],
+                        "analysis_mode": "local_cv",
+                    }
+                )
 
         capture.release()
-        metadata = {
-            "fps": round(fps, 3),
-            "frame_count": frame_count,
-            "width": width,
-            "height": height,
-            "duration_seconds": round(float(duration), 2),
-            "sample_count": len(observations),
-        }
-        return observations, metadata
+        metadata["sample_count"] = len(observations)
+        return observations, metadata, progressive_events
 
     def _observe_frame(
         self,
@@ -147,18 +242,38 @@ class VideoAnalyzer:
             closeup_score=closeup_score,
         )
 
-    def _events_from_observations(self, *, observations: list[FrameObservation], metadata: dict, video_id: str) -> list[dict]:
-        ranked = sorted(
-            observations,
-            key=lambda item: (
-                item.motion_score * 0.48
-                + item.scene_change * 0.22
-                + item.pitch_ratio * 0.18
-                + item.line_ratio * 0.08
-                + item.scoreboard_ratio * 0.04
-            ),
-            reverse=True,
+    def _maybe_emit_progressive_event(
+        self,
+        *,
+        observation: FrameObservation,
+        existing_events: list[dict],
+        spacing_seconds: float,
+        video_id: str,
+        index: int,
+        metadata: dict,
+    ) -> dict | None:
+        signal_score = self._signal_score(observation)
+        if signal_score < 0.13:
+            return None
+
+        if existing_events and any(
+            abs(float(event["timestamp_seconds"]) - observation.timestamp_seconds) < spacing_seconds for event in existing_events
+        ):
+            return None
+
+        event_type = self._classify_observation(observation)
+        if event_type in {"momentum_shift", "injury"} and signal_score < 0.22:
+            return None
+
+        return self._event_from_observation(
+            observation=observation,
+            index=index,
+            video_id=video_id,
+            metadata=metadata,
         )
+
+    def _events_from_observations(self, *, observations: list[FrameObservation], metadata: dict, video_id: str) -> list[dict]:
+        ranked = sorted(observations, key=self._signal_score, reverse=True)
         selected: list[FrameObservation] = []
         spacing_seconds = max(2.0, min(8.0, float(metadata["duration_seconds"]) / 8))
         for observation in ranked:
@@ -179,6 +294,24 @@ class VideoAnalyzer:
             self._event_from_observation(observation=observation, index=index, video_id=video_id, metadata=metadata)
             for index, observation in enumerate(selected, start=1)
         ]
+
+    def _merge_events(self, *, progressive_events: list[dict], deterministic_events: list[dict], metadata: dict) -> list[dict]:
+        merged = list(progressive_events)
+        spacing_seconds = max(2.0, min(8.0, float(metadata["duration_seconds"]) / 8))
+        target_count = max(settings.video_analysis_min_events, 3)
+
+        for candidate in deterministic_events:
+            if len(merged) >= target_count:
+                break
+            if any(abs(float(candidate["timestamp_seconds"]) - float(existing["timestamp_seconds"])) < spacing_seconds for existing in merged):
+                continue
+            merged.append(candidate)
+
+        if not merged:
+            merged = deterministic_events[:target_count]
+
+        merged.sort(key=lambda item: float(item["timestamp_seconds"]))
+        return merged
 
     def _event_from_observation(
         self,
@@ -320,6 +453,15 @@ class VideoAnalyzer:
         if signal > 0.38:
             return "medium"
         return "low"
+
+    def _signal_score(self, observation: FrameObservation) -> float:
+        return (
+            observation.motion_score * 0.48
+            + observation.scene_change * 0.22
+            + observation.pitch_ratio * 0.18
+            + observation.line_ratio * 0.08
+            + observation.scoreboard_ratio * 0.04
+        )
 
     def _context_for_event(self, event_type: str) -> dict:
         contexts = {
