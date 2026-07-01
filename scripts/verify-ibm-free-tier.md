@@ -15,6 +15,12 @@
 - `IBM_WATSONX_MODEL_ID`
 - `IBM_WATSONX_API_VERSION`
 
+## Verified live integration notes
+
+- The regional chat-model inventory should be queried before choosing `IBM_WATSONX_MODEL_ID`.
+- On this project in `us-south`, `ibm/granite-3-8b-instruct` is chat-capable and available.
+- `granite-3-2b-instruct` returned `403 Forbidden` for chat inference and should not be used as the default for this repository.
+
 ## Default implementation mode
 
 `IBM_WATSONX_USE_MOCK=true`

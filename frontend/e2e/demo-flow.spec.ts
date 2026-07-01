@@ -7,9 +7,9 @@ test("demo flow stays profile-aware and demo-ready", async ({ page }) => {
     page.getByRole("heading", { name: /Explain the match without interrupting the match/i }),
   ).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/System status at a glance/i)).toBeVisible();
-  await expect(page.getByText(/Service Ready/i)).toBeVisible();
-  await expect(page.getByText(/mock/i).first()).toBeVisible();
-  await expect(page.getByText(/sqlite/i).first()).toBeVisible();
+  const statusPill = page.locator(".status-pill");
+  await expect(statusPill).toContainText("Service Ready");
+  await expect(statusPill).toContainText("sqlite");
 
   await page.getByRole("button", { name: /^new fan$/i }).click();
   await page.getByRole("button", { name: /^Generate Insight$/i }).click();

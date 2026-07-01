@@ -17,6 +17,7 @@
 - SQLAlchemy
 - Alembic-ready structure
 - watsonx.ai chat API adapter with mock fallback
+- live watsonx verification helper for credentialed environments
 
 ## Testing
 

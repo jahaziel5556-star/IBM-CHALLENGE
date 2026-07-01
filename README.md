@@ -81,6 +81,14 @@ Detailed guidance lives in `docs/12_DEMO.md`.
 
 The implementation is structured around IBM watsonx.ai and Granite through backend adapters configured by environment variables. The repository includes a mock fallback so the app remains usable before credentials are supplied.
 
+For live verification after credentials are added locally:
+
+```powershell
+.\scripts\verify-watsonx-live.ps1
+```
+
+The repository default model is `ibm/granite-3-8b-instruct`, which is chat-capable in the verified `us-south` inventory.
+
 ## Database Modes
 
 - Local quick start: SQLite with automatic schema initialization and seeded demo data
