@@ -34,6 +34,7 @@ const CONDITIONAL_EXPLAINABLE_TYPES = new Set([
   "substitution",
 ]);
 const SOMETIMES_SILENT_TYPES = new Set(["dangerous_attack", "counterattack", "injury", "high_press_detected"]);
+const AUTO_OVERLAY_TYPES = new Set(["var_review", "goal_disallowed", "penalty", "no_penalty", "red_card"]);
 
 type SpeechRecognitionCtor = new () => {
   continuous: boolean;
@@ -67,6 +68,22 @@ function shouldOfferInsight(event: MatchEvent | undefined) {
     return event.rule.priority >= 80;
   }
   return event.rule.priority >= 85;
+}
+
+function shouldAutoOverlay(event: MatchEvent | undefined) {
+  if (!event || event.silent_recommended) {
+    return false;
+  }
+
+  if (AUTO_OVERLAY_TYPES.has(event.type)) {
+    return true;
+  }
+
+  if (event.type === "offside") {
+    return event.rule.priority >= 85;
+  }
+
+  return event.rule.priority >= 92;
 }
 
 function findRailEvent(events: MatchEvent[], seconds: number) {
@@ -135,7 +152,6 @@ export default function App() {
   const [videos, setVideos] = useState<VideoAsset[]>([]);
   const [activeVideo, setActiveVideo] = useState<VideoAsset | null>(null);
   const [isInsightDrawerOpen, setIsInsightDrawerOpen] = useState(false);
-  const [isInsightSuggested, setIsInsightSuggested] = useState(false);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -150,9 +166,9 @@ export default function App() {
   const lastPlaybackTimeRef = useRef(0);
 
   const explainableEvents = useMemo(() => events.filter((event) => shouldOfferInsight(event)), [events]);
-  const timedExplainableEvents = useMemo(() => sortTimedEvents(explainableEvents), [explainableEvents]);
+  const autoOverlayEvents = useMemo(() => explainableEvents.filter((event) => shouldAutoOverlay(event)), [explainableEvents]);
+  const timedAutoOverlayEvents = useMemo(() => sortTimedEvents(autoOverlayEvents), [autoOverlayEvents]);
   const selectedEvent = events.find((event) => event.id === selectedEventId);
-  const canOpenInsight = shouldOfferInsight(selectedEvent);
 
   useEffect(() => {
     async function loadApp() {
@@ -218,15 +234,6 @@ export default function App() {
   }, [transientInsight]);
 
   useEffect(() => {
-    if (!isInsightSuggested) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => setIsInsightSuggested(false), 4500);
-    return () => window.clearTimeout(timeout);
-  }, [isInsightSuggested]);
-
-  useEffect(() => {
     if (transientInsight || pendingOverlayEventIds.length === 0) {
       return;
     }
@@ -286,7 +293,6 @@ export default function App() {
       if (options?.openDrawer) {
         setDrawerInsight(insight);
         setIsInsightDrawerOpen(true);
-        setIsInsightSuggested(false);
       }
 
       if (options?.showTransient) {
@@ -294,7 +300,6 @@ export default function App() {
         setDrawerInsight((current) => (current?.event_id === eventId ? current : insight));
         setPendingOverlayEventIds((current) => current.filter((queuedId) => queuedId !== eventId));
         setShownEventIds((current) => [...new Set([...current, eventId])]);
-        setIsInsightSuggested(true);
       }
 
       if (options?.speakAnswer && typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -340,7 +345,6 @@ export default function App() {
       setDrawerInsight(null);
       setTransientInsight(null);
       setIsInsightDrawerOpen(false);
-      setIsInsightSuggested(false);
       setShownEventIds([]);
       setPendingOverlayEventIds([]);
       setVideoCurrentTime(0);
@@ -394,13 +398,12 @@ export default function App() {
   }
 
   function resetPlaybackStateAt(seconds: number) {
-    const alreadyPast = timedExplainableEvents
+    const alreadyPast = timedAutoOverlayEvents
       .filter((event) => Number(event.timestamp_seconds) <= seconds + 0.05)
       .map((event) => event.id);
     setShownEventIds(alreadyPast);
     setPendingOverlayEventIds([]);
     setTransientInsight(null);
-    setIsInsightSuggested(false);
   }
 
   function handleVideoSeek(seconds: number) {
@@ -432,7 +435,7 @@ export default function App() {
       setLastExplainedMinute(contextEvent.minute);
     }
 
-    if (!activeVideo || timedExplainableEvents.length === 0) {
+    if (!activeVideo || timedAutoOverlayEvents.length === 0) {
       return;
     }
 
@@ -441,7 +444,7 @@ export default function App() {
       return;
     }
 
-    const crossedEvents = timedExplainableEvents
+    const crossedEvents = timedAutoOverlayEvents
       .filter((event) => !shownEventIds.includes(event.id))
       .filter((event) => !pendingOverlayEventIds.includes(event.id))
       .filter((event) => {
@@ -455,30 +458,24 @@ export default function App() {
     }
   }
 
-  function handleSelectEvent(eventId: string) {
+  async function handleSelectEvent(eventId: string) {
     const event = explainableEvents.find((item) => item.id === eventId);
     if (event && typeof event.timestamp_seconds === "number") {
       handleVideoSeek(Number(event.timestamp_seconds));
     }
     setSelectedEventId(eventId);
     setLastExplainedMinute(event?.minute ?? null);
-    setIsInsightDrawerOpen(false);
-    setIsInsightSuggested(false);
-  }
-
-  function handleOpenInsightRequest() {
-    const event = events.find((item) => item.id === selectedEventId);
-    if (!event || !shouldOfferInsight(event)) {
+    if (!event) {
+      setIsInsightDrawerOpen(false);
       return;
     }
 
-    if (drawerInsight?.event_id === selectedEventId) {
+    if (drawerInsight?.event_id === eventId) {
       setIsInsightDrawerOpen(true);
-      setIsInsightSuggested(false);
       return;
     }
 
-    void handleExplain(selectedEventId, { openDrawer: true });
+    await handleExplain(eventId, { openDrawer: true });
   }
 
   function handleToggleVoiceAssistant() {
@@ -611,16 +608,12 @@ export default function App() {
           <InsightOverlay
             drawerInsight={drawerInsight}
             event={selectedEvent}
-            canRequestInsight={canOpenInsight}
             isDrawerOpen={isInsightDrawerOpen}
-            isSuggested={isInsightSuggested}
-            onOpen={handleOpenInsightRequest}
             onClose={() => setIsInsightDrawerOpen(false)}
             onDismiss={() => {
               setDrawerInsight(null);
               setTransientInsight(null);
               setIsInsightDrawerOpen(false);
-              setIsInsightSuggested(false);
             }}
           />
         </section>
@@ -631,7 +624,7 @@ export default function App() {
               <p className="section-label">Moments</p>
               <h2>Explainable moments</h2>
             </div>
-            <p className="moments-hint">Use the slider or arrow keys to move through the clip. Open the corner insight button only when you want more detail.</p>
+            <p className="moments-hint">Use the slider or arrow keys to move through the clip. Click any explainable moment below when you want the full breakdown.</p>
           </div>
 
           {!isLoading && explainableEvents.length === 0 ? (

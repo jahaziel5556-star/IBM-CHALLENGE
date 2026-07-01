@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import App from "./App";
 
@@ -324,13 +324,15 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findByText(/Explainable moments/i)).toBeInTheDocument();
-    expect(screen.getByText(/Use the slider or arrow keys to move through the clip/i)).toBeInTheDocument();
+    expect(screen.getByText(/Click any explainable moment below when you want the full breakdown/i)).toBeInTheDocument();
     expect(screen.getByText(/Load a match clip/i)).toBeInTheDocument();
-    expect(screen.getByText(/Explainable moments/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Open Match Insights/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Open Match Insights/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Voice not supported in this browser/i)).toBeInTheDocument();
     expect(screen.getByText(/Service Ready/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /new fan/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Large text/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Goal Disallowed For Offside/i }));
+    expect(await screen.findByText(/Match Insights/i)).toBeInTheDocument();
   });
 });

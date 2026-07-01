@@ -11,8 +11,8 @@ test("demo flow stays profile-aware and demo-ready", async ({ page }) => {
 
   const firstMoment = page.locator(".timeline-card").first();
   await expect(firstMoment).toBeVisible();
+  await expect(page.getByRole("button", { name: /Open Match Insights/i })).toHaveCount(0);
   await firstMoment.click();
-  await page.getByRole("button", { name: /Open Match Insights/i }).click();
   const drawer = page.locator(".insight-drawer");
   await expect(drawer.locator(".overlay-kicker")).toContainText(/Match Insights/i, { timeout: 30_000 });
   await expect(drawer.locator("h3")).toBeVisible({ timeout: 30_000 });
