@@ -322,10 +322,10 @@ vi.stubGlobal(
 describe("App", () => {
   it("renders the main broadcast framing", async () => {
     render(<App />);
-    expect(await screen.findByText(/Keep the match front and center/i)).toBeInTheDocument();
+    expect(await screen.findByText(/AI understanding without broadcast clutter/i)).toBeInTheDocument();
     expect(screen.getByText(/Broadcast clip/i)).toBeInTheDocument();
-    expect(screen.getByText(/Key moments worth explaining/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Open Match Insight$/i })).toBeInTheDocument();
+    expect(screen.getByText(/Explainable moments/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Open Match Insights/i })).toBeInTheDocument();
     expect(screen.getByText(/Service Ready/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /new fan/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Large text/i)).toBeInTheDocument();

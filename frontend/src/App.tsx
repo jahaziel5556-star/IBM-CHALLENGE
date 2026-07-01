@@ -374,12 +374,12 @@ export default function App() {
       />
 
       <main className="broadcast-layout">
-        <section className="broadcast-intro">
-          <div>
-            <p className="eyebrow">AI Understanding Layer</p>
-            <h1>Keep the match front and center.</h1>
-            <p className="lede">
-              MatchMind One stays quiet until a moment becomes genuinely confusing, then offers a clean explanation without taking over the screen.
+        <section className="broadcast-chrome">
+          <div className="broadcast-identity">
+            <p className="eyebrow">Broadcast Integration Preview</p>
+            <h1>AI understanding without broadcast clutter.</h1>
+            <p className="broadcast-summary">
+              Explanations stay hidden until a moment deserves them, then open from a small corner entry point instead of taking over the match.
             </p>
           </div>
 
@@ -437,11 +437,9 @@ export default function App() {
           <div className="moments-header">
             <div>
               <p className="section-label">Moments</p>
-              <h2>Key moments worth explaining</h2>
+              <h2>Explainable moments</h2>
             </div>
-            <button className="secondary-button" onClick={handleOpenInsightRequest} disabled={!selectedEventId || !canOpenInsight}>
-              Open Match Insight
-            </button>
+            <p className="moments-hint">Select a moment, then open the corner insight button.</p>
           </div>
 
           {!isLoading && explainableEvents.length === 0 ? (

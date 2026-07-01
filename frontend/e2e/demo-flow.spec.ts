@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test";
 test("demo flow stays profile-aware and demo-ready", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
 
-  await expect(page.getByRole("heading", { name: /Keep the match front and center/i })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText(/Key moments worth explaining/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /AI understanding without broadcast clutter/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Explainable moments/i)).toBeVisible();
   const statusPill = page.locator(".status-pill");
   await expect(statusPill).toContainText("Service Ready");
   await expect(statusPill).toContainText("sqlite");
@@ -12,7 +12,7 @@ test("demo flow stays profile-aware and demo-ready", async ({ page }) => {
   const firstMoment = page.locator(".timeline-card").first();
   await expect(firstMoment).toBeVisible();
   await firstMoment.click();
-  await page.getByRole("button", { name: /^Open Match Insight$/i }).click();
+  await page.getByRole("button", { name: /Open Match Insights/i }).click();
   const drawer = page.locator(".insight-drawer");
   await expect(drawer.locator(".overlay-kicker")).toContainText(/Match Insights/i, { timeout: 30_000 });
   await expect(drawer.locator("h3")).toBeVisible({ timeout: 30_000 });
@@ -29,5 +29,5 @@ test("demo flow stays profile-aware and demo-ready", async ({ page }) => {
   const largeTextToggle = page.getByLabel(/Large text/i);
   await largeTextToggle.check();
   await expect(largeTextToggle).toBeChecked();
-  await expect(page.getByText(/Key moments worth explaining/i)).toBeVisible();
+  await expect(page.getByText(/Explainable moments/i)).toBeVisible();
 });
