@@ -31,3 +31,4 @@
 - Docker and Docker Compose definitions included
 - `npm` supported immediately on this machine
 - `pnpm` can be added later without breaking the repo shape
+- GitHub Actions CI for automated test, build, and E2E verification

@@ -17,6 +17,7 @@
 - overlay card rendering
 - match timeline rendering
 - Playwright demo-flow validation across real frontend and backend processes
+- GitHub Actions automation for backend, frontend, and E2E verification
 
 ## Acceptance Checks
 
@@ -27,3 +28,4 @@
 - health and summary endpoints expose IBM mode plus database backend for demos
 - profile switching immediately re-explains the active event with the newly selected profile
 - browser-level demo flow confirms overlay generation, insight history, and accessibility controls
+- GitHub CI can enforce the local validation path automatically on repository changes

@@ -33,6 +33,7 @@ Show that MatchMind One improves understanding without interrupting the live foo
 - Backend: `cd backend && .venv\Scripts\activate && uvicorn app.main:app --reload`
 - Browser validation: `cd frontend && npm run test:e2e`
 - Live watsonx validation: `.\scripts\verify-watsonx-live.ps1`
+- CI validation: GitHub Actions runs the same demo-flow verification on pushes and pull requests
 
 ## Demo Success Criteria
 

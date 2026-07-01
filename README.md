@@ -101,3 +101,22 @@ The repository default model is `ibm/granite-3-8b-instruct`, which is chat-capab
 - Frontend component tests pass with `npm run test`
 - Frontend production build passes with `npm run build`
 - Browser-level demo verification passes with `npm run test:e2e`
+- GitHub Actions can run the same local validation path on pushes and pull requests
+
+## GitHub CI
+
+The repository now includes [`.github/workflows/ci.yml`](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHALLENGE/.github/workflows/ci.yml) for:
+
+- backend tests
+- frontend unit tests
+- frontend production build
+- Playwright demo validation
+- optional live watsonx verification when repository secrets are configured
+
+To enable the live watsonx CI job, add these GitHub repository secrets:
+
+- `IBM_WATSONX_API_KEY`
+- `IBM_WATSONX_PROJECT_ID`
+- `IBM_WATSONX_URL`
+- `IBM_WATSONX_MODEL_ID`
+- `IBM_WATSONX_API_VERSION`

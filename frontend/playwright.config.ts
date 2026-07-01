@@ -1,4 +1,16 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { defineConfig } from "@playwright/test";
+
+const isWindows = process.platform === "win32";
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+const backendCommand = isWindows
+  ? "py -m uvicorn app.main:app --host 127.0.0.1 --port 38011"
+  : "python -m uvicorn app.main:app --host 127.0.0.1 --port 38011";
+const frontendCommand = isWindows ? "npm.cmd run dev:e2e" : "npm run dev:e2e";
+const backendCwd = path.resolve(configDir, "../backend");
+const frontendCwd = path.resolve(configDir);
 
 export default defineConfig({
   testDir: "./e2e",
@@ -13,17 +25,17 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "py -m uvicorn app.main:app --host 127.0.0.1 --port 38011",
+      command: backendCommand,
       url: "http://127.0.0.1:38011/health",
       reuseExistingServer: false,
-      cwd: "../backend",
+      cwd: backendCwd,
       timeout: 60_000,
     },
     {
-      command: "npm.cmd run dev:e2e",
+      command: frontendCommand,
       url: "http://127.0.0.1:43173",
       reuseExistingServer: false,
-      cwd: ".",
+      cwd: frontendCwd,
       timeout: 60_000,
     },
   ],
