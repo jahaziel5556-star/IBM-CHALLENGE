@@ -1,23 +1,21 @@
 import { useEffect, useRef } from "react";
 
-import type { MatchEvent, MatchSummary } from "../types/domain";
+import type { ExplainResponse, MatchSummary } from "../types/domain";
 
 type MatchStageProps = {
   match?: MatchSummary;
-  activeEvent?: MatchEvent;
-  liveMinute: number;
   liveScore: {
     home: number;
     away: number;
   };
   videoUrl?: string;
-  videoTitle?: string;
-  timelineSource?: string;
   videoCurrentTime: number;
   videoDuration: number;
   isVideoPlaying: boolean;
+  transientInsight: ExplainResponse | null;
   onTogglePlayback: () => void;
   onVideoSeek: (seconds: number) => void;
+  onSkipBy: (seconds: number) => void;
   onVideoTimeUpdate?: (currentTime: number) => void;
   onVideoLoadedMetadata?: (duration: number) => void;
   onVideoPlayStateChange?: (isPlaying: boolean) => void;
@@ -35,17 +33,15 @@ function formatClock(totalSeconds: number) {
 
 export function MatchStage({
   match,
-  activeEvent,
-  liveMinute,
   liveScore,
   videoUrl,
-  videoTitle,
-  timelineSource,
   videoCurrentTime,
   videoDuration,
   isVideoPlaying,
+  transientInsight,
   onTogglePlayback,
   onVideoSeek,
+  onSkipBy,
   onVideoTimeUpdate,
   onVideoLoadedMetadata,
   onVideoPlayStateChange,
@@ -58,7 +54,7 @@ export function MatchStage({
       return;
     }
 
-    if (Math.abs(element.currentTime - videoCurrentTime) > 0.35) {
+    if (Math.abs(element.currentTime - videoCurrentTime) > 0.2) {
       element.currentTime = videoCurrentTime;
     }
   }, [videoCurrentTime, videoUrl]);
@@ -80,87 +76,83 @@ export function MatchStage({
   }, [isVideoPlaying, onVideoPlayStateChange, videoUrl]);
 
   return (
-    <div className={videoUrl ? "match-stage match-stage-video" : "match-stage"}>
-      <div className="score-bug">
-        <div>
-          <span>{match?.home_team ?? "Blue City"}</span>
-          <strong>{liveScore.home}</strong>
-        </div>
-        <div>
-          <span>{match?.away_team ?? "Crimson United"}</span>
-          <strong>{liveScore.away}</strong>
-        </div>
-      </div>
-
-      <div className="production-badge">{videoUrl ? "Broadcast review" : "Match simulation"}</div>
-
-      {videoUrl ? (
-        <div className="video-stage">
-          <video
-            ref={videoRef}
-            className="match-video"
-            src={videoUrl}
-            playsInline
-            onLoadedMetadata={(event) => onVideoLoadedMetadata?.(event.currentTarget.duration)}
-            onTimeUpdate={(event) => onVideoTimeUpdate?.(event.currentTarget.currentTime)}
-            onPlay={() => onVideoPlayStateChange?.(true)}
-            onPause={() => onVideoPlayStateChange?.(false)}
-          >
-            <track kind="captions" />
-          </video>
-          <div className="video-vignette" />
-          {activeEvent ? (
-            <div className="event-pulse event-pulse-video">
-              <span>{activeEvent.title}</span>
-              <strong>{activeEvent.team}</strong>
-            </div>
-          ) : null}
-          <div className="transport-bar">
-            <button className="transport-toggle" onClick={onTogglePlayback} aria-label={isVideoPlaying ? "Pause video" : "Play video"}>
-              {isVideoPlaying ? "Pause" : "Play"}
-            </button>
-            <div className="transport-slider-wrap">
-              <span>{formatClock(videoCurrentTime)}</span>
-              <input
-                aria-label="Video timeline"
-                className="transport-slider"
-                type="range"
-                min={0}
-                max={videoDuration || 0}
-                step={0.1}
-                value={Math.min(videoCurrentTime, videoDuration || 0)}
-                onChange={(event) => onVideoSeek(Number(event.currentTarget.value))}
-              />
-              <span>{formatClock(videoDuration)}</span>
-            </div>
+    <section className="watch-shell">
+      <div className="watch-player-frame">
+        <div className="score-bug">
+          <div>
+            <span>{match?.home_team ?? "Blue City"}</span>
+            <strong>{liveScore.home}</strong>
+          </div>
+          <div>
+            <span>{match?.away_team ?? "Crimson United"}</span>
+            <strong>{liveScore.away}</strong>
           </div>
         </div>
-      ) : (
-        <div className="pitch">
-          <div className="center-circle" />
-          <div className="mid-line" />
-          <div className="penalty-box penalty-box-left" />
-          <div className="penalty-box penalty-box-right" />
-          <div className="spot spot-left" />
-          <div className="spot spot-right" />
-          {activeEvent ? (
-            <div className="event-pulse">
-              <span>{activeEvent.title}</span>
-              <strong>{activeEvent.team}</strong>
+
+        {videoUrl ? (
+          <div className="video-stage">
+            <video
+              ref={videoRef}
+              className="match-video"
+              src={videoUrl}
+              playsInline
+              onLoadedMetadata={(event) => onVideoLoadedMetadata?.(event.currentTarget.duration)}
+              onTimeUpdate={(event) => onVideoTimeUpdate?.(event.currentTarget.currentTime)}
+              onPlay={() => onVideoPlayStateChange?.(true)}
+              onPause={() => onVideoPlayStateChange?.(false)}
+            >
+              <track kind="captions" />
+            </video>
+            <div className="video-vignette" />
+
+            {transientInsight ? (
+              <aside className="video-insight-card" aria-live="polite">
+                <div className="video-insight-topline">
+                  <span>Match Insights</span>
+                  <strong>{transientInsight.confidence}</strong>
+                </div>
+                <h3>{transientInsight.headline}</h3>
+                <p>{transientInsight.explanation}</p>
+                <div className="video-insight-meta">
+                  {transientInsight.law_reference ? <span>{transientInsight.law_reference}</span> : null}
+                </div>
+              </aside>
+            ) : null}
+
+            <div className="transport-bar" aria-label="Video playback controls">
+              <button className="transport-toggle" onClick={onTogglePlayback} aria-label={isVideoPlaying ? "Pause video" : "Play video"}>
+                {isVideoPlaying ? "Pause" : "Play"}
+              </button>
+              <button className="transport-jump" onClick={() => onSkipBy(-30)} aria-label="Back 30 seconds">
+                -30s
+              </button>
+              <div className="transport-slider-wrap">
+                <span>{formatClock(videoCurrentTime)}</span>
+                <input
+                  aria-label="Video timeline"
+                  className="transport-slider"
+                  type="range"
+                  min={0}
+                  max={videoDuration || 0}
+                  step={0.1}
+                  value={Math.min(videoCurrentTime, videoDuration || 0)}
+                  onChange={(event) => onVideoSeek(Number(event.currentTarget.value))}
+                />
+                <span>{formatClock(videoDuration)}</span>
+              </div>
+              <button className="transport-jump" onClick={() => onSkipBy(30)} aria-label="Forward 30 seconds">
+                +30s
+              </button>
             </div>
-          ) : null}
-        </div>
-      )}
-
-      <div className="queue-banner">
-        <span>{videoUrl ? "Match window" : "Match state"}</span>
-        <p>{videoUrl ? `${timelineSource?.replace(/_/g, " ") ?? "manual"} | ${videoTitle ?? "Uploaded clip"}` : "Upload a clip to review a real moment."}</p>
+          </div>
+        ) : (
+          <div className="empty-player">
+            <p className="section-label">Broadcast Preview</p>
+            <h2>Load a match clip</h2>
+            <p>The video player becomes the full experience. AI explanations only surface when the moment actually needs them.</p>
+          </div>
+        )}
       </div>
-
-      <div className="commentary-strip">
-        <span>Live</span>
-        <p>{match?.competition ?? "World Championship Final"} | Minute {liveMinute}</p>
-      </div>
-    </div>
+    </section>
   );
 }

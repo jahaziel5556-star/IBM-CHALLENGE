@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { apiAssetUrl, apiGet, apiPost, apiUpload } from "./api/client";
 import { EventTimeline } from "./components/EventTimeline";
@@ -24,21 +24,16 @@ import type {
 } from "./types/domain";
 
 const profiles: ProfileId[] = ["new_fan", "casual_viewer", "analyst", "child", "accessibility"];
-const EXPLAINABLE_EVENT_TYPES = new Set([
-  "goal_disallowed",
+const ALWAYS_EXPLAINABLE_TYPES = new Set(["var_review", "goal_disallowed", "penalty", "no_penalty", "red_card"]);
+const CONDITIONAL_EXPLAINABLE_TYPES = new Set([
   "offside",
-  "penalty",
-  "no_penalty",
-  "red_card",
   "yellow_card",
-  "var_review",
   "momentum_shift",
   "tactical_formation_change",
   "defensive_block_change",
-  "counterattack",
-  "dangerous_attack",
   "substitution",
 ]);
+const SOMETIMES_SILENT_TYPES = new Set(["dangerous_attack", "counterattack", "injury", "high_press_detected"]);
 
 type SpeechRecognitionCtor = new () => {
   continuous: boolean;
@@ -51,17 +46,10 @@ type SpeechRecognitionCtor = new () => {
   stop: () => void;
 };
 
-function findClosestVideoEvent(events: MatchEvent[], seconds: number) {
-  const timedEvents = events
+function sortTimedEvents(events: MatchEvent[]) {
+  return [...events]
     .filter((event) => typeof event.timestamp_seconds === "number")
     .sort((left, right) => Number(left.timestamp_seconds) - Number(right.timestamp_seconds));
-
-  if (timedEvents.length === 0) {
-    return undefined;
-  }
-
-  const passedEvent = [...timedEvents].reverse().find((event) => Number(event.timestamp_seconds) <= seconds + 0.4);
-  return passedEvent ?? timedEvents[0];
 }
 
 function shouldOfferInsight(event: MatchEvent | undefined) {
@@ -69,7 +57,30 @@ function shouldOfferInsight(event: MatchEvent | undefined) {
     return false;
   }
 
-  return event.rule.priority >= 80 || EXPLAINABLE_EVENT_TYPES.has(event.type);
+  if (ALWAYS_EXPLAINABLE_TYPES.has(event.type)) {
+    return true;
+  }
+  if (CONDITIONAL_EXPLAINABLE_TYPES.has(event.type)) {
+    return event.rule.priority >= 70;
+  }
+  if (SOMETIMES_SILENT_TYPES.has(event.type)) {
+    return event.rule.priority >= 80;
+  }
+  return event.rule.priority >= 85;
+}
+
+function findRailEvent(events: MatchEvent[], seconds: number) {
+  const timed = sortTimedEvents(events);
+  if (timed.length === 0) {
+    return undefined;
+  }
+
+  const current = [...timed].reverse().find((event) => Number(event.timestamp_seconds) <= seconds + 0.1);
+  if (current) {
+    return current;
+  }
+
+  return timed[0];
 }
 
 function resolveVoiceEvent(question: string, events: MatchEvent[], selectedEvent?: MatchEvent) {
@@ -100,7 +111,6 @@ export default function App() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [events, setEvents] = useState<MatchEvent[]>([]);
   const [profile, setProfile] = useState<ProfileId>("new_fan");
-  const [activeInsight, setActiveInsight] = useState<ExplainResponse | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string>("evt-penalty-62");
   const [profileSettings, setProfileSettings] = useState<ProfileSettings>({
     profile: "new_fan",
@@ -109,7 +119,6 @@ export default function App() {
     high_contrast: false,
     reduced_motion: false,
   });
-  const [videoTriggeredEventIds, setVideoTriggeredEventIds] = useState<string[]>([]);
   const [lastExplainedMinute, setLastExplainedMinute] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
@@ -134,6 +143,16 @@ export default function App() {
   const [isListening, setIsListening] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [voiceError, setVoiceError] = useState("");
+  const [drawerInsight, setDrawerInsight] = useState<ExplainResponse | null>(null);
+  const [transientInsight, setTransientInsight] = useState<ExplainResponse | null>(null);
+  const [shownEventIds, setShownEventIds] = useState<string[]>([]);
+  const [pendingOverlayEventIds, setPendingOverlayEventIds] = useState<string[]>([]);
+  const lastPlaybackTimeRef = useRef(0);
+
+  const explainableEvents = useMemo(() => events.filter((event) => shouldOfferInsight(event)), [events]);
+  const timedExplainableEvents = useMemo(() => sortTimedEvents(explainableEvents), [explainableEvents]);
+  const selectedEvent = events.find((event) => event.id === selectedEventId);
+  const canOpenInsight = shouldOfferInsight(selectedEvent);
 
   useEffect(() => {
     async function loadApp() {
@@ -182,14 +201,74 @@ export default function App() {
   useEffect(() => {
     const recognitionAvailable =
       typeof window !== "undefined" &&
-      Boolean((window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor }).SpeechRecognition ||
-        (window as Window & { webkitSpeechRecognition?: SpeechRecognitionCtor }).webkitSpeechRecognition);
+      Boolean(
+        (window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor }).SpeechRecognition ||
+          (window as Window & { webkitSpeechRecognition?: SpeechRecognitionCtor }).webkitSpeechRecognition,
+      );
     setIsVoiceSupported(recognitionAvailable);
   }, []);
 
+  useEffect(() => {
+    if (!transientInsight) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setTransientInsight(null), transientInsight.overlay.duration_seconds * 1000);
+    return () => window.clearTimeout(timeout);
+  }, [transientInsight]);
+
+  useEffect(() => {
+    if (!isInsightSuggested) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setIsInsightSuggested(false), 4500);
+    return () => window.clearTimeout(timeout);
+  }, [isInsightSuggested]);
+
+  useEffect(() => {
+    if (transientInsight || pendingOverlayEventIds.length === 0) {
+      return;
+    }
+
+    const nextEventId = pendingOverlayEventIds[0];
+    void handleExplain(nextEventId, { fromVideoRun: true, showTransient: true });
+  }, [pendingOverlayEventIds, transientInsight]);
+
+  useEffect(() => {
+    function handleWindowKeydown(event: KeyboardEvent) {
+      if (!activeVideo || !videoDuration) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      if (target && ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)) {
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        handleSkipBy(30);
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        handleSkipBy(-30);
+      }
+    }
+
+    window.addEventListener("keydown", handleWindowKeydown);
+    return () => window.removeEventListener("keydown", handleWindowKeydown);
+  }, [activeVideo, videoDuration, videoCurrentTime]);
+
   async function handleExplain(
     eventId: string,
-    options?: { fromVideoRun?: boolean; requestProfile?: ProfileId; openDrawer?: boolean; speakAnswer?: boolean },
+    options?: {
+      fromVideoRun?: boolean;
+      requestProfile?: ProfileId;
+      openDrawer?: boolean;
+      speakAnswer?: boolean;
+      showTransient?: boolean;
+    },
   ) {
     if (!eventId) {
       return;
@@ -203,13 +282,26 @@ export default function App() {
       if (event) {
         setLastExplainedMinute(event.minute);
       }
-      setActiveInsight(insight);
-      setIsInsightDrawerOpen(Boolean(options?.openDrawer));
-      setIsInsightSuggested(Boolean(options?.fromVideoRun));
+
+      if (options?.openDrawer) {
+        setDrawerInsight(insight);
+        setIsInsightDrawerOpen(true);
+        setIsInsightSuggested(false);
+      }
+
+      if (options?.showTransient) {
+        setTransientInsight(insight);
+        setDrawerInsight((current) => (current?.event_id === eventId ? current : insight));
+        setPendingOverlayEventIds((current) => current.filter((queuedId) => queuedId !== eventId));
+        setShownEventIds((current) => [...new Set([...current, eventId])]);
+        setIsInsightSuggested(true);
+      }
+
       if (options?.speakAnswer && typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(new SpeechSynthesisUtterance(insight.explanation));
       }
+
       setErrorMessage("");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Insight generation failed.");
@@ -221,7 +313,7 @@ export default function App() {
     const nextSettings = { ...profileSettings, profile: nextProfile };
     setProfileSettings(nextSettings);
     await apiPost("/api/profile", nextSettings);
-    if (selectedEventId && activeInsight) {
+    if (selectedEventId && drawerInsight) {
       void handleExplain(selectedEventId, { requestProfile: nextProfile, openDrawer: isInsightDrawerOpen });
     }
   }
@@ -245,13 +337,16 @@ export default function App() {
       const uploadedVideo = await apiUpload<VideoAsset>("/api/videos/upload", formData);
       setVideos((current) => [uploadedVideo, ...current.filter((video) => video.id !== uploadedVideo.id)]);
       setActiveVideo(uploadedVideo);
-      setActiveInsight(null);
+      setDrawerInsight(null);
+      setTransientInsight(null);
       setIsInsightDrawerOpen(false);
       setIsInsightSuggested(false);
-      setVideoTriggeredEventIds([]);
+      setShownEventIds([]);
+      setPendingOverlayEventIds([]);
       setVideoCurrentTime(0);
       setVideoDuration(0);
       setIsVideoPlaying(false);
+      lastPlaybackTimeRef.current = 0;
       if (uploadedVideo.event_count > 0) {
         await loadVideoEvents(uploadedVideo);
       } else {
@@ -288,7 +383,8 @@ export default function App() {
       setVideos((current) => [analysis.video, ...current.filter((video) => video.id !== analysis.video.id)]);
       setEvents(analysis.events);
       setSelectedEventId(analysis.events[0]?.id ?? "");
-      setVideoTriggeredEventIds([]);
+      setShownEventIds([]);
+      setPendingOverlayEventIds([]);
       setErrorMessage("");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Video analysis failed.");
@@ -297,68 +393,70 @@ export default function App() {
     }
   }
 
-  function handleVideoSeek(seconds: number) {
-    setVideoCurrentTime(seconds);
-    setIsVideoPlaying(false);
-    setActiveInsight(null);
-    setIsInsightDrawerOpen(false);
+  function resetPlaybackStateAt(seconds: number) {
+    const alreadyPast = timedExplainableEvents
+      .filter((event) => Number(event.timestamp_seconds) <= seconds + 0.05)
+      .map((event) => event.id);
+    setShownEventIds(alreadyPast);
+    setPendingOverlayEventIds([]);
+    setTransientInsight(null);
     setIsInsightSuggested(false);
+  }
 
-    const timedEvents = events.filter((event) => event.video_id === activeVideo?.id && typeof event.timestamp_seconds === "number");
-    const closestEvent = findClosestVideoEvent(timedEvents, seconds);
-    if (closestEvent) {
-      setSelectedEventId(closestEvent.id);
-      setLastExplainedMinute(closestEvent.minute);
+  function handleVideoSeek(seconds: number) {
+    const boundedTime = Math.max(0, Math.min(seconds, videoDuration || seconds));
+    setVideoCurrentTime(boundedTime);
+    setIsVideoPlaying(false);
+    resetPlaybackStateAt(boundedTime);
+    lastPlaybackTimeRef.current = boundedTime;
+
+    const contextEvent = findRailEvent(explainableEvents, boundedTime);
+    if (contextEvent) {
+      setSelectedEventId(contextEvent.id);
+      setLastExplainedMinute(contextEvent.minute);
     }
+  }
 
-    setVideoTriggeredEventIds(
-      timedEvents
-        .filter((event) => Number(event.timestamp_seconds) <= seconds + 0.4)
-        .map((event) => event.id),
-    );
+  function handleSkipBy(offsetSeconds: number) {
+    handleVideoSeek(videoCurrentTime + offsetSeconds);
   }
 
   function handleVideoTimeUpdate(currentTime: number) {
-    setVideoCurrentTime((previous) => {
-      if (currentTime + 0.5 < previous) {
-        const timedEvents = events.filter((event) => event.video_id === activeVideo?.id && typeof event.timestamp_seconds === "number");
-        setVideoTriggeredEventIds(
-          timedEvents
-            .filter((event) => Number(event.timestamp_seconds) <= currentTime + 0.4)
-            .map((event) => event.id),
-        );
-      }
-      return currentTime;
-    });
+    const previousTime = lastPlaybackTimeRef.current;
+    lastPlaybackTimeRef.current = currentTime;
+    setVideoCurrentTime(currentTime);
 
-    const visibleEvent = findClosestVideoEvent(events.filter((event) => event.video_id === activeVideo?.id), currentTime);
-    if (visibleEvent) {
-      setSelectedEventId(visibleEvent.id);
-      setLastExplainedMinute(visibleEvent.minute);
+    const contextEvent = findRailEvent(explainableEvents, currentTime);
+    if (contextEvent) {
+      setSelectedEventId(contextEvent.id);
+      setLastExplainedMinute(contextEvent.minute);
     }
 
-    if (!activeVideo || activeInsight || events.length === 0) {
+    if (!activeVideo || timedExplainableEvents.length === 0) {
       return;
     }
 
-    const dueEvent = events
-      .filter((event) => event.video_id === activeVideo.id)
-      .filter((event) => typeof event.timestamp_seconds === "number")
-      .filter((event) => Number(event.timestamp_seconds) <= currentTime + 0.4)
-      .filter((event) => !videoTriggeredEventIds.includes(event.id))
-      .filter((event) => shouldOfferInsight(event))
-      .sort((left, right) => Number(left.timestamp_seconds) - Number(right.timestamp_seconds))[0];
-
-    if (!dueEvent) {
+    if (currentTime + 0.2 < previousTime) {
+      resetPlaybackStateAt(currentTime);
       return;
     }
 
-    setVideoTriggeredEventIds((current) => [...new Set([...current, dueEvent.id])]);
-    void handleExplain(dueEvent.id, { fromVideoRun: true });
+    const crossedEvents = timedExplainableEvents
+      .filter((event) => !shownEventIds.includes(event.id))
+      .filter((event) => !pendingOverlayEventIds.includes(event.id))
+      .filter((event) => {
+        const timestamp = Number(event.timestamp_seconds);
+        return timestamp > previousTime && timestamp <= currentTime;
+      })
+      .map((event) => event.id);
+
+    if (crossedEvents.length > 0) {
+      setPendingOverlayEventIds((current) => [...current, ...crossedEvents]);
+    }
   }
 
   function handleSelectEvent(eventId: string) {
-    const event = events.find((item) => item.id === eventId);
+    const event = explainableEvents.find((item) => item.id === eventId);
     if (event && typeof event.timestamp_seconds === "number") {
       handleVideoSeek(Number(event.timestamp_seconds));
     }
@@ -366,10 +464,6 @@ export default function App() {
     setLastExplainedMinute(event?.minute ?? null);
     setIsInsightDrawerOpen(false);
     setIsInsightSuggested(false);
-
-    if (!shouldOfferInsight(event)) {
-      setActiveInsight(null);
-    }
   }
 
   function handleOpenInsightRequest() {
@@ -378,7 +472,7 @@ export default function App() {
       return;
     }
 
-    if (activeInsight?.event_id === selectedEventId) {
+    if (drawerInsight?.event_id === selectedEventId) {
       setIsInsightDrawerOpen(true);
       setIsInsightSuggested(false);
       return;
@@ -423,11 +517,11 @@ export default function App() {
         .join(" ")
         .trim();
       setVoiceTranscript(transcript);
-      const matchedEvent = resolveVoiceEvent(transcript, events, selectedEvent);
+      const matchedEvent = resolveVoiceEvent(transcript, explainableEvents, selectedEvent);
       if (matchedEvent) {
         setSelectedEventId(matchedEvent.id);
         setLastExplainedMinute(matchedEvent.minute);
-        void handleExplain(matchedEvent.id, { speakAnswer: true, openDrawer: false });
+        void handleExplain(matchedEvent.id, { speakAnswer: true, showTransient: true });
       }
     };
     recognition.onerror = (event) => {
@@ -440,9 +534,6 @@ export default function App() {
     recognition.start();
   }
 
-  const selectedEvent = events.find((event) => event.id === selectedEventId);
-  const explainableEvents = events.filter((event) => shouldOfferInsight(event));
-  const canOpenInsight = shouldOfferInsight(selectedEvent);
   const liveMinute = selectedEvent?.minute ?? lastExplainedMinute ?? 1;
   const liveScore = events
     .filter((event) => event.type === "goal" && event.minute <= liveMinute)
@@ -478,80 +569,69 @@ export default function App() {
         isHealthy={health.status === "ok"}
       />
 
-      <main className="broadcast-layout">
-        <section className="broadcast-chrome">
-          <div className="broadcast-identity">
-            <p className="eyebrow">Broadcast Integration Preview</p>
-            <h1>AI understanding without broadcast clutter.</h1>
-            <p className="broadcast-summary">
-              Explanations stay hidden until a moment deserves them, then open from a small corner entry point instead of taking over the match.
-            </p>
-          </div>
-
-          <div className="broadcast-toolbar">
-            <ProfileSwitcher profiles={profiles} activeProfile={profile} onChange={handleProfileChange} />
-            <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
-            <VoiceAssist
-              isSupported={isVoiceSupported}
-              isListening={isListening}
-              transcript={voiceTranscript}
-              error={voiceError}
-              onToggleListening={handleToggleVoiceAssistant}
-            />
-            <VideoIngestPanel
-              activeVideo={activeVideo}
-              isUploading={isUploadingVideo}
-              isAnalyzing={isAnalyzingVideo}
-              onUpload={handleVideoUpload}
-            />
-          </div>
+      <main className="watch-page">
+        <section className="watch-utility-bar">
+          <ProfileSwitcher profiles={profiles} activeProfile={profile} onChange={handleProfileChange} />
+          <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
+          <VoiceAssist
+            isSupported={isVoiceSupported}
+            isListening={isListening}
+            transcript={voiceTranscript}
+            error={voiceError}
+            onToggleListening={handleToggleVoiceAssistant}
+          />
+          <VideoIngestPanel
+            activeVideo={activeVideo}
+            isUploading={isUploadingVideo}
+            isAnalyzing={isAnalyzingVideo}
+            onUpload={handleVideoUpload}
+          />
         </section>
 
-        <section className="broadcast-stage-shell">
+        <section className="watch-stage-panel">
           {errorMessage ? <StateNotice title="System Notice" message={errorMessage} tone="error" /> : null}
           {isLoading ? <StateNotice title="Loading Broadcast" message="Fetching match context and clip state." /> : null}
 
           <MatchStage
             match={matches[0]}
-            activeEvent={selectedEvent}
-            liveMinute={liveMinute}
             liveScore={liveScore}
             videoUrl={activeVideo ? apiAssetUrl(activeVideo.video_url) : undefined}
-            videoTitle={activeVideo?.filename}
-            timelineSource={activeVideo?.timeline_source}
             videoCurrentTime={videoCurrentTime}
             videoDuration={videoDuration}
             isVideoPlaying={isVideoPlaying}
+            transientInsight={transientInsight}
             onTogglePlayback={() => setIsVideoPlaying((current) => !current)}
             onVideoSeek={handleVideoSeek}
+            onSkipBy={handleSkipBy}
             onVideoLoadedMetadata={handleAnalyzeVideo}
             onVideoTimeUpdate={handleVideoTimeUpdate}
             onVideoPlayStateChange={setIsVideoPlaying}
           />
 
           <InsightOverlay
-            insight={activeInsight}
+            drawerInsight={drawerInsight}
             event={selectedEvent}
             canRequestInsight={canOpenInsight}
-            isOpen={isInsightDrawerOpen}
+            isDrawerOpen={isInsightDrawerOpen}
             isSuggested={isInsightSuggested}
             onOpen={handleOpenInsightRequest}
             onClose={() => setIsInsightDrawerOpen(false)}
             onDismiss={() => {
-              setActiveInsight(null);
+              setDrawerInsight(null);
+              setTransientInsight(null);
               setIsInsightDrawerOpen(false);
               setIsInsightSuggested(false);
             }}
           />
         </section>
 
-        <section className="broadcast-moments">
+        <section className="watch-moments-rail">
           <div className="moments-header">
             <div>
               <p className="section-label">Moments</p>
               <h2>Explainable moments</h2>
             </div>
-            <p className="moments-hint">Select a moment, then open the corner insight button.</p>
+            <p className="moments-hint">Use the slider or arrow keys to move through the clip. Open the corner insight button only when you want more detail.</p>
           </div>
 
           {!isLoading && explainableEvents.length === 0 ? (
@@ -561,7 +641,7 @@ export default function App() {
           <EventTimeline
             events={explainableEvents}
             selectedEventId={selectedEventId}
-            queuedEventIds={videoTriggeredEventIds}
+            queuedEventIds={pendingOverlayEventIds}
             onSelect={handleSelectEvent}
           />
         </section>

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("demo flow stays profile-aware and demo-ready", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
 
-  await expect(page.getByRole("heading", { name: /AI understanding without broadcast clutter/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Load a match clip/i)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/Explainable moments/i)).toBeVisible();
   const statusPill = page.locator(".status-pill");
   await expect(statusPill).toContainText("Service Ready");
@@ -30,4 +30,7 @@ test("demo flow stays profile-aware and demo-ready", async ({ page }) => {
   await largeTextToggle.check();
   await expect(largeTextToggle).toBeChecked();
   await expect(page.getByText(/Explainable moments/i)).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(drawer).not.toHaveClass(/insight-drawer-open/);
 });

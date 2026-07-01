@@ -320,10 +320,12 @@ vi.stubGlobal(
 );
 
 describe("App", () => {
-  it("renders the main broadcast framing", async () => {
+  it("renders the broadcast-first watch page", async () => {
     render(<App />);
-    expect(await screen.findByText(/AI understanding without broadcast clutter/i)).toBeInTheDocument();
-    expect(screen.getByText(/Broadcast clip/i)).toBeInTheDocument();
+
+    expect(await screen.findByText(/Explainable moments/i)).toBeInTheDocument();
+    expect(screen.getByText(/Use the slider or arrow keys to move through the clip/i)).toBeInTheDocument();
+    expect(screen.getByText(/Load a match clip/i)).toBeInTheDocument();
     expect(screen.getByText(/Explainable moments/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Open Match Insights/i })).toBeInTheDocument();
     expect(screen.getByText(/Voice not supported in this browser/i)).toBeInTheDocument();
