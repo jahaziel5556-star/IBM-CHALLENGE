@@ -324,7 +324,7 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findByText(/Explainable moments/i)).toBeInTheDocument();
-    expect(screen.getByText(/Click any explainable moment below when you want the full breakdown/i)).toBeInTheDocument();
+    expect(screen.getByText(/Drag the timeline, use YouTube-style shortcuts/i)).toBeInTheDocument();
     expect(screen.getByText(/Load a match clip/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Open Match Insights/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Voice not supported in this browser/i)).toBeInTheDocument();

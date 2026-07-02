@@ -3,7 +3,8 @@ import { expect, test } from "@playwright/test";
 test("demo flow stays profile-aware and demo-ready", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
 
-  await expect(page.getByText(/Load a match clip/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Explainable moments/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Broadcast Watch/i)).toBeVisible();
   await expect(page.getByText(/Explainable moments/i)).toBeVisible();
   const statusPill = page.locator(".status-pill");
   await expect(statusPill).toContainText("Service Ready");

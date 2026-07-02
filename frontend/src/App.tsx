@@ -128,6 +128,16 @@ function isVideoAnalysisComplete(video: VideoAsset | null | undefined) {
   return Boolean(video && ["events_ready", "cv_analysis_ready", "failed"].includes(video.analysis_status));
 }
 
+function formatAnalysisPhase(video: VideoAsset | null) {
+  if (!video) {
+    return "Waiting for clip";
+  }
+  if (video.analysis_status === "failed") {
+    return "Analysis failed";
+  }
+  return video.analysis_phase.replace(/_/g, " ");
+}
+
 export default function App() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [events, setEvents] = useState<MatchEvent[]>([]);
@@ -292,6 +302,18 @@ export default function App() {
         return;
       }
 
+      if (event.key === " " || event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setIsVideoPlaying((current) => !current);
+      }
+      if (event.key.toLowerCase() === "j") {
+        event.preventDefault();
+        handleSkipBy(-10);
+      }
+      if (event.key.toLowerCase() === "l") {
+        event.preventDefault();
+        handleSkipBy(10);
+      }
       if (event.key === "ArrowRight") {
         event.preventDefault();
         handleSkipBy(30);
@@ -588,6 +610,8 @@ export default function App() {
   }
 
   const liveMinute = selectedEvent?.minute ?? lastExplainedMinute ?? 1;
+  const currentVideoTitle = activeVideo?.filename?.replace(/\.mp4$/i, "") ?? "Match Clip";
+  const currentAnalysisPhase = formatAnalysisPhase(activeVideo);
   const liveScore = events
     .filter((event) => event.type === "goal" && event.minute <= liveMinute)
     .reduce(
@@ -623,77 +647,117 @@ export default function App() {
       />
 
       <main className="watch-page">
-        <section className="watch-utility-bar">
-          <ProfileSwitcher profiles={profiles} activeProfile={profile} onChange={handleProfileChange} />
-          <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
-          <VoiceAssist
-            isSupported={isVoiceSupported}
-            isListening={isListening}
-            transcript={voiceTranscript}
-            error={voiceError}
-            onToggleListening={handleToggleVoiceAssistant}
-          />
-          <VideoIngestPanel
-            activeVideo={activeVideo}
-            isUploading={isUploadingVideo}
-            isAnalyzing={isAnalyzingVideo}
-            onUpload={handleVideoUpload}
-          />
-        </section>
+        <div className="watch-layout">
+          <div className="watch-main-column">
+            <section className="watch-stage-panel">
+              {errorMessage ? <StateNotice title="System Notice" message={errorMessage} tone="error" /> : null}
+              {isLoading ? <StateNotice title="Loading Broadcast" message="Fetching match context and clip state." /> : null}
 
-        <section className="watch-stage-panel">
-          {errorMessage ? <StateNotice title="System Notice" message={errorMessage} tone="error" /> : null}
-          {isLoading ? <StateNotice title="Loading Broadcast" message="Fetching match context and clip state." /> : null}
+              <MatchStage
+                match={matches[0]}
+                liveScore={liveScore}
+                videoUrl={activeVideo ? apiAssetUrl(activeVideo.video_url) : undefined}
+                videoCurrentTime={videoCurrentTime}
+                videoDuration={videoDuration}
+                isVideoPlaying={isVideoPlaying}
+                transientInsight={transientInsight}
+                onTogglePlayback={() => setIsVideoPlaying((current) => !current)}
+                onVideoSeek={handleVideoSeek}
+                onSkipBy={handleSkipBy}
+                onVideoLoadedMetadata={handleVideoMetadataLoaded}
+                onVideoTimeUpdate={handleVideoTimeUpdate}
+                onVideoPlayStateChange={setIsVideoPlaying}
+              />
 
-          <MatchStage
-            match={matches[0]}
-            liveScore={liveScore}
-            videoUrl={activeVideo ? apiAssetUrl(activeVideo.video_url) : undefined}
-            videoCurrentTime={videoCurrentTime}
-            videoDuration={videoDuration}
-            isVideoPlaying={isVideoPlaying}
-            transientInsight={transientInsight}
-            onTogglePlayback={() => setIsVideoPlaying((current) => !current)}
-            onVideoSeek={handleVideoSeek}
-            onSkipBy={handleSkipBy}
-            onVideoLoadedMetadata={handleVideoMetadataLoaded}
-            onVideoTimeUpdate={handleVideoTimeUpdate}
-            onVideoPlayStateChange={setIsVideoPlaying}
-          />
+              <InsightOverlay
+                drawerInsight={drawerInsight}
+                event={selectedEvent}
+                isDrawerOpen={isInsightDrawerOpen}
+                onClose={() => setIsInsightDrawerOpen(false)}
+                onDismiss={() => {
+                  setDrawerInsight(null);
+                  setTransientInsight(null);
+                  setIsInsightDrawerOpen(false);
+                }}
+              />
+            </section>
 
-          <InsightOverlay
-            drawerInsight={drawerInsight}
-            event={selectedEvent}
-            isDrawerOpen={isInsightDrawerOpen}
-            onClose={() => setIsInsightDrawerOpen(false)}
-            onDismiss={() => {
-              setDrawerInsight(null);
-              setTransientInsight(null);
-              setIsInsightDrawerOpen(false);
-            }}
-          />
-        </section>
+            <section className="watch-summary-panel">
+              <div className="watch-title-block">
+                <p className="section-label">Broadcast Watch</p>
+                <h1>{currentVideoTitle}</h1>
+                <p className="watch-summary-copy">
+                  Real-time AI overlays appear only when they add useful context. The match stays central, and deeper reasoning stays one click away in the moments rail.
+                </p>
+              </div>
 
-        <section className="watch-moments-rail">
-          <div className="moments-header">
-            <div>
-              <p className="section-label">Moments</p>
-              <h2>Explainable moments</h2>
-            </div>
-            <p className="moments-hint">Use the slider or arrow keys to move through the clip. Click any explainable moment below when you want the full breakdown.</p>
+              <div className="watch-meta-row">
+                <div className="watch-meta-pill">
+                  <strong>{currentAnalysisPhase}</strong>
+                  <span>{activeVideo ? `${activeVideo.event_count} events surfaced` : "Upload a clip to begin"}</span>
+                </div>
+                <div className="watch-meta-pill">
+                  <strong>Playback shortcuts</strong>
+                  <span>`Space` / `K` play, `J` / `L` 10s, arrows 30s</span>
+                </div>
+                <div className="watch-meta-pill">
+                  <strong>Viewer mode</strong>
+                  <span>{profile.replace(/_/g, " ")}</span>
+                </div>
+              </div>
+            </section>
+
+            <section className="watch-moments-rail">
+              <div className="moments-header">
+                <div>
+                  <p className="section-label">Moments</p>
+                  <h2>Explainable moments</h2>
+                </div>
+                <p className="moments-hint">Drag the timeline, use YouTube-style shortcuts, or click a moment below for the full breakdown.</p>
+              </div>
+
+              {!isLoading && explainableEvents.length === 0 ? (
+                <StateNotice title="No Events Yet" message="Upload a clip or wait for AI analysis to find moments worth explaining." />
+              ) : null}
+
+              <EventTimeline
+                events={explainableEvents}
+                selectedEventId={selectedEventId}
+                queuedEventIds={pendingOverlayEventIds}
+                onSelect={handleSelectEvent}
+              />
+            </section>
           </div>
 
-          {!isLoading && explainableEvents.length === 0 ? (
-            <StateNotice title="No Events Yet" message="Upload a clip or wait for AI analysis to find moments worth explaining." />
-          ) : null}
+          <aside className="watch-sidebar">
+            <section className="watch-sidebar-card">
+              <ProfileSwitcher profiles={profiles} activeProfile={profile} onChange={handleProfileChange} />
+            </section>
 
-          <EventTimeline
-            events={explainableEvents}
-            selectedEventId={selectedEventId}
-            queuedEventIds={pendingOverlayEventIds}
-            onSelect={handleSelectEvent}
-          />
-        </section>
+            <section className="watch-sidebar-card">
+              <VideoIngestPanel
+                activeVideo={activeVideo}
+                isUploading={isUploadingVideo}
+                isAnalyzing={isAnalyzingVideo}
+                onUpload={handleVideoUpload}
+              />
+            </section>
+
+            <section className="watch-sidebar-card">
+              <VoiceAssist
+                isSupported={isVoiceSupported}
+                isListening={isListening}
+                transcript={voiceTranscript}
+                error={voiceError}
+                onToggleListening={handleToggleVoiceAssistant}
+              />
+            </section>
+
+            <section className="watch-sidebar-card">
+              <SettingsPanel settings={profileSettings} onToggle={handleToggleSetting} />
+            </section>
+          </aside>
+        </div>
       </main>
     </div>
   );

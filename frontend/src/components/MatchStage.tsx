@@ -96,6 +96,7 @@ export function MatchStage({
               className="match-video"
               src={videoUrl}
               playsInline
+              onClick={onTogglePlayback}
               onLoadedMetadata={(event) => onVideoLoadedMetadata?.(event.currentTarget.duration)}
               onTimeUpdate={(event) => onVideoTimeUpdate?.(event.currentTarget.currentTime)}
               onPlay={() => onVideoPlayStateChange?.(true)}
@@ -105,10 +106,21 @@ export function MatchStage({
             </video>
             <div className="video-vignette" />
 
+            {!isVideoPlaying ? (
+              <button className="video-center-toggle" onClick={onTogglePlayback} aria-label="Play video">
+                Play
+              </button>
+            ) : null}
+
+            <div className="player-chrome-top">
+              <div className="player-badge">MatchMind live analysis</div>
+              <div className="player-shortcuts">Space/K play • J/L 10s • ←/→ 30s</div>
+            </div>
+
             {transientInsight ? (
               <aside className="video-insight-card" aria-live="polite">
                 <div className="video-insight-topline">
-                  <span>Auto insight</span>
+                  <span>AI overlay</span>
                   <strong>{transientInsight.confidence}</strong>
                 </div>
                 <h3>{transientInsight.headline}</h3>
@@ -124,10 +136,10 @@ export function MatchStage({
                 {isVideoPlaying ? "Pause" : "Play"}
               </button>
               <button className="transport-jump" onClick={() => onSkipBy(-30)} aria-label="Back 30 seconds">
-                -30s
+                -30
               </button>
               <div className="transport-slider-wrap">
-                <span>{formatClock(videoCurrentTime)}</span>
+                <span className="transport-time">{formatClock(videoCurrentTime)}</span>
                 <input
                   aria-label="Video timeline"
                   className="transport-slider"
@@ -138,10 +150,10 @@ export function MatchStage({
                   value={Math.min(videoCurrentTime, videoDuration || 0)}
                   onChange={(event) => onVideoSeek(Number(event.currentTarget.value))}
                 />
-                <span>{formatClock(videoDuration)}</span>
+                <span className="transport-time">{formatClock(videoDuration)}</span>
               </div>
               <button className="transport-jump" onClick={() => onSkipBy(30)} aria-label="Forward 30 seconds">
-                +30s
+                +30
               </button>
             </div>
           </div>
