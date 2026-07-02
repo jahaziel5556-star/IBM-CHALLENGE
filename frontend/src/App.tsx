@@ -142,6 +142,28 @@ function insightCacheKey(profile: ProfileId, eventId: string) {
   return `${profile}:${eventId}`;
 }
 
+function getOverlayPrewarmEventIds(events: MatchEvent[], currentTime: number) {
+  if (events.length === 0) {
+    return [];
+  }
+
+  const lookBehindSeconds = 2;
+  const lookAheadSeconds = 75;
+  const nearWindow = events.filter((event) => {
+    const timestamp = Number(event.timestamp_seconds);
+    return timestamp >= Math.max(0, currentTime - lookBehindSeconds) && timestamp <= currentTime + lookAheadSeconds;
+  });
+
+  if (nearWindow.length > 0) {
+    return nearWindow.slice(0, 3).map((event) => event.id);
+  }
+
+  return events
+    .filter((event) => Number(event.timestamp_seconds) >= Math.max(0, currentTime - lookBehindSeconds))
+    .slice(0, 3)
+    .map((event) => event.id);
+}
+
 export default function App() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [events, setEvents] = useState<MatchEvent[]>([]);
@@ -268,10 +290,9 @@ export default function App() {
   }, [transientInsight]);
 
   useEffect(() => {
-    const candidateIds = autoOverlayEvents
-      .map((event) => event.id)
+    const candidateIds = getOverlayPrewarmEventIds(timedAutoOverlayEvents, videoCurrentTime)
       .filter((eventId) => !insightCache[insightCacheKey(profile, eventId)])
-      .slice(0, 6);
+      .slice(0, 3);
     if (candidateIds.length === 0) {
       return;
     }
@@ -307,16 +328,17 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [autoOverlayEvents, insightCache, profile]);
+  }, [insightCache, profile, timedAutoOverlayEvents, videoCurrentTime]);
 
   useEffect(() => {
     if (transientInsight || pendingOverlayEventIds.length === 0) {
       return;
     }
 
-    const nextEventId = pendingOverlayEventIds[0];
+    const nextEventId =
+      pendingOverlayEventIds.find((eventId) => insightCache[insightCacheKey(profile, eventId)]) ?? pendingOverlayEventIds[0];
     void handleExplain(nextEventId, { fromVideoRun: true, showTransient: true });
-  }, [pendingOverlayEventIds, transientInsight]);
+  }, [insightCache, pendingOverlayEventIds, profile, transientInsight]);
 
   useEffect(() => {
     if (!activeVideo || isVideoAnalysisComplete(activeVideo)) {
@@ -590,7 +612,11 @@ export default function App() {
 
     if (crossedEvents.length > 0) {
       setPendingOverlayEventIds((current) => {
-        const next = [...current, ...crossedEvents];
+        const merged = [...new Set([...current, ...crossedEvents])];
+        const next = [
+          ...merged.filter((eventId) => insightCache[insightCacheKey(profile, eventId)]),
+          ...merged.filter((eventId) => !insightCache[insightCacheKey(profile, eventId)]),
+        ];
         pendingOverlayEventIdsRef.current = next;
         return next;
       });

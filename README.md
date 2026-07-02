@@ -103,6 +103,48 @@ The repository default model is `ibm/granite-3-8b-instruct`, which is chat-capab
 - Browser-level demo verification passes with `npm run test:e2e`
 - GitHub Actions can run the same local validation path on pushes and pull requests
 
+## How To Test Overlay Timing And Animation
+
+Start the backend and frontend locally first:
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Then run the automated checks:
+
+```powershell
+cd backend
+.\.venv\Scripts\python -m pytest
+```
+
+```powershell
+cd frontend
+npm run test
+npm run build
+npm run test:e2e
+```
+
+Manual browser QA for overlays:
+
+- Load the app and play the seeded match clip or upload an `.mp4` plus [sample-video-events.json](/C:/Users/Jahaziel%20Davis/Documents/IBM%20CHALLENGE/assets/sample-video-events.json).
+- Let playback cross an explainable incident like offside, penalty, VAR, or red card and confirm the overlay appears quickly instead of waiting for a drawer interaction.
+- Watch for the pending state on an uncached incident and confirm it is brief, animated, and replaced by the final explanation.
+- Confirm the overlay fades and slides in smoothly, holds long enough to read, and fades out cleanly before the next eligible incident.
+- Rewind before an explainable incident, replay it, and confirm the overlay can trigger again without stale text staying on screen.
+- Use `ArrowLeft` and `ArrowRight` to jump 30 seconds and confirm the timeline, selected incident, and overlays stay in sync.
+- Turn on `Reduced motion` in the settings panel and confirm the richer overlay motion collapses to simpler fade behavior.
+
 ## Rapid Submission Path
 
 If you need a verified deliverable without Docker, this is the primary fast path:
