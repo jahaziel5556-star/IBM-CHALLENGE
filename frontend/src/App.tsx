@@ -138,6 +138,10 @@ function formatAnalysisPhase(video: VideoAsset | null) {
   return video.analysis_phase.replace(/_/g, " ");
 }
 
+function insightCacheKey(profile: ProfileId, eventId: string) {
+  return `${profile}:${eventId}`;
+}
+
 export default function App() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [events, setEvents] = useState<MatchEvent[]>([]);
@@ -175,6 +179,8 @@ export default function App() {
   const [voiceError, setVoiceError] = useState("");
   const [drawerInsight, setDrawerInsight] = useState<ExplainResponse | null>(null);
   const [transientInsight, setTransientInsight] = useState<ExplainResponse | null>(null);
+  const [transientPendingEventId, setTransientPendingEventId] = useState<string | null>(null);
+  const [insightCache, setInsightCache] = useState<Record<string, ExplainResponse>>({});
   const [shownEventIds, setShownEventIds] = useState<string[]>([]);
   const [pendingOverlayEventIds, setPendingOverlayEventIds] = useState<string[]>([]);
   const lastPlaybackTimeRef = useRef(0);
@@ -185,6 +191,7 @@ export default function App() {
   const autoOverlayEvents = useMemo(() => explainableEvents.filter((event) => shouldAutoOverlay(event)), [explainableEvents]);
   const timedAutoOverlayEvents = useMemo(() => sortTimedEvents(autoOverlayEvents), [autoOverlayEvents]);
   const selectedEvent = events.find((event) => event.id === selectedEventId);
+  const transientPendingEvent = transientPendingEventId ? events.find((event) => event.id === transientPendingEventId) : null;
 
   useEffect(() => {
     shownEventIdsRef.current = shownEventIds;
@@ -259,6 +266,48 @@ export default function App() {
     const timeout = window.setTimeout(() => setTransientInsight(null), transientInsight.overlay.duration_seconds * 1000);
     return () => window.clearTimeout(timeout);
   }, [transientInsight]);
+
+  useEffect(() => {
+    const candidateIds = autoOverlayEvents
+      .map((event) => event.id)
+      .filter((eventId) => !insightCache[insightCacheKey(profile, eventId)])
+      .slice(0, 6);
+    if (candidateIds.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+    void Promise.all(
+      candidateIds.map(async (eventId) => {
+        try {
+          const insight = await apiPost<ExplainResponse>("/api/explain", { profile, event_id: eventId });
+          return [eventId, insight] as const;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((results) => {
+      if (cancelled) {
+        return;
+      }
+
+      setInsightCache((current) => {
+        const next = { ...current };
+        for (const result of results) {
+          if (!result) {
+            continue;
+          }
+          const [eventId, insight] = result;
+          next[insightCacheKey(profile, eventId)] = insight;
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [autoOverlayEvents, insightCache, profile]);
 
   useEffect(() => {
     if (transientInsight || pendingOverlayEventIds.length === 0) {
@@ -345,7 +394,15 @@ export default function App() {
     setSelectedEventId(eventId);
     try {
       const activeProfile = options?.requestProfile ?? profile;
-      const insight = await apiPost<ExplainResponse>("/api/explain", { profile: activeProfile, event_id: eventId });
+      const cacheId = insightCacheKey(activeProfile, eventId);
+      let insight = insightCache[cacheId];
+      if (!insight) {
+        if (options?.showTransient) {
+          setTransientPendingEventId(eventId);
+        }
+        insight = await apiPost<ExplainResponse>("/api/explain", { profile: activeProfile, event_id: eventId });
+        setInsightCache((current) => ({ ...current, [cacheId]: insight }));
+      }
       const event = events.find((item) => item.id === eventId);
       if (event) {
         setLastExplainedMinute(event.minute);
@@ -357,6 +414,7 @@ export default function App() {
       }
 
       if (options?.showTransient) {
+        setTransientPendingEventId(null);
         setTransientInsight(insight);
         setDrawerInsight((current) => (current?.event_id === eventId ? current : insight));
         setPendingOverlayEventIds((current) => {
@@ -378,6 +436,7 @@ export default function App() {
 
       setErrorMessage("");
     } catch (error) {
+      setTransientPendingEventId(null);
       setErrorMessage(error instanceof Error ? error.message : "Insight generation failed.");
     }
   }
@@ -437,6 +496,7 @@ export default function App() {
       setActiveVideo(uploadedVideo);
       setDrawerInsight(null);
       setTransientInsight(null);
+      setTransientPendingEventId(null);
       setIsInsightDrawerOpen(false);
       setShownEventIds([]);
       setPendingOverlayEventIds([]);
@@ -478,6 +538,7 @@ export default function App() {
     setShownEventIds(alreadyPast);
     setPendingOverlayEventIds([]);
     setTransientInsight(null);
+    setTransientPendingEventId(null);
   }
 
   function handleVideoSeek(seconds: number) {
@@ -661,6 +722,7 @@ export default function App() {
                 videoDuration={videoDuration}
                 isVideoPlaying={isVideoPlaying}
                 transientInsight={transientInsight}
+                transientPendingEvent={transientPendingEvent}
                 onTogglePlayback={() => setIsVideoPlaying((current) => !current)}
                 onVideoSeek={handleVideoSeek}
                 onSkipBy={handleSkipBy}
@@ -677,6 +739,7 @@ export default function App() {
                 onDismiss={() => {
                   setDrawerInsight(null);
                   setTransientInsight(null);
+                  setTransientPendingEventId(null);
                   setIsInsightDrawerOpen(false);
                 }}
               />

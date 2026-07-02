@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
-import type { ExplainResponse, MatchSummary } from "../types/domain";
+import type { ExplainResponse, MatchEvent, MatchSummary } from "../types/domain";
 
 type MatchStageProps = {
   match?: MatchSummary;
@@ -13,6 +13,7 @@ type MatchStageProps = {
   videoDuration: number;
   isVideoPlaying: boolean;
   transientInsight: ExplainResponse | null;
+  transientPendingEvent?: MatchEvent | null;
   onTogglePlayback: () => void;
   onVideoSeek: (seconds: number) => void;
   onSkipBy: (seconds: number) => void;
@@ -39,6 +40,7 @@ export function MatchStage({
   videoDuration,
   isVideoPlaying,
   transientInsight,
+  transientPendingEvent,
   onTogglePlayback,
   onVideoSeek,
   onSkipBy,
@@ -114,20 +116,31 @@ export function MatchStage({
 
             <div className="player-chrome-top">
               <div className="player-badge">MatchMind live analysis</div>
-              <div className="player-shortcuts">Space/K play • J/L 10s • ←/→ 30s</div>
+              <div className="player-shortcuts">Space/K play | J/L 10s | Left/Right 30s</div>
             </div>
 
-            {transientInsight ? (
-              <aside className="video-insight-card" aria-live="polite">
+            {transientInsight || transientPendingEvent ? (
+              <aside
+                key={transientInsight?.event_id ?? transientPendingEvent?.id ?? "overlay"}
+                className={transientInsight ? "video-insight-card" : "video-insight-card video-insight-card-pending"}
+                aria-live="polite"
+                style={
+                  transientInsight
+                    ? ({ "--overlay-duration": `${transientInsight.overlay.duration_seconds}s` } as CSSProperties)
+                    : undefined
+                }
+              >
                 <div className="video-insight-topline">
-                  <span>AI overlay</span>
-                  <strong>{transientInsight.confidence}</strong>
+                  <span>{transientInsight ? "AI overlay" : "Reading the moment"}</span>
+                  <strong>{transientInsight?.confidence ?? "live"}</strong>
                 </div>
-                <h3>{transientInsight.headline}</h3>
-                <p>{transientInsight.explanation}</p>
+                <h3>{transientInsight?.headline ?? transientPendingEvent?.title ?? "Analyzing moment"}</h3>
+                <p>{transientInsight?.explanation ?? "AI is preparing the explanation for this incident."}</p>
                 <div className="video-insight-meta">
-                  {transientInsight.law_reference ? <span>{transientInsight.law_reference}</span> : null}
+                  {transientInsight?.law_reference ? <span>{transientInsight.law_reference}</span> : null}
+                  {!transientInsight && transientPendingEvent?.type ? <span>{transientPendingEvent.type.replace(/_/g, " ")}</span> : null}
                 </div>
+                <div className="video-insight-progress" />
               </aside>
             ) : null}
 

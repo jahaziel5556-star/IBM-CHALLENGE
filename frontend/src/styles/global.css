@@ -612,7 +612,13 @@ input {
   background: linear-gradient(180deg, rgba(12, 16, 22, 0.94), rgba(16, 23, 29, 0.9));
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34);
   backdrop-filter: blur(16px);
-  animation: overlay-in 200ms ease;
+  overflow: hidden;
+  animation: overlay-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.video-insight-card-pending {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(12, 16, 22, 0.88), rgba(18, 20, 26, 0.84));
 }
 
 .video-insight-topline {
@@ -662,6 +668,22 @@ input {
   background: rgba(255, 255, 255, 0.06);
   font-size: 0.72rem;
   text-transform: uppercase;
+}
+
+.video-insight-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(53, 210, 192, 0.75), rgba(255, 78, 69, 0.85));
+  transform-origin: left center;
+  animation: overlay-progress var(--overlay-duration, 1.2s) linear forwards;
+}
+
+.video-insight-card-pending .video-insight-progress {
+  opacity: 0.8;
+  animation: overlay-pulse 900ms ease-in-out infinite;
 }
 
 .insight-scrim {
@@ -851,11 +873,30 @@ input {
 @keyframes overlay-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes overlay-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes overlay-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
   }
 }
 
